@@ -1,0 +1,96 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+
+Referenced from http://www.sthda.com/english/wiki/text-mining-and-word-cloud-fundamentals-in-r-5-simple-steps-you-should-know
+
+```{r}
+library(rjson)
+library(tidyjson)
+library(tidyverse)
+library(jsonlite)
+library(stringr)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+```
+
+```{r}
+df <- read_json("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/6618/JSON/?response_type=save&response_basename=CID_6618")
+```
+
+```{r}
+df <- df$Record$Section
+```
+
+```{r}
+category_names <- vector()
+for (i in 1:length(df)) {
+    category_names <- c(category_names, df[[i]]$TOCHeading)
+}
+names(df) <- category_names
+```
+
+
+```{r}
+df <- df$Record$Section[[8]]$Section[[1]]$Information
+temp <- vector()
+for (i in 1:length(df)) {
+    temp <- c(temp, df[[i]]$StringValue)
+}
+```
+
+```{r url-cleanup}
+for (i in 1:length(temp)) {
+    temp[i] <- str_replace_all(temp[i], "\\<.*\\>", "")
+}
+```
+
+```{r}
+temp <- paste(temp, sep = "", collapse = "")
+```
+
+```{r}
+str_count(temp, "\\S+")
+```
+
+
+```{r}
+temp_corpus <- Corpus(VectorSource(temp))
+```
+
+```{r}
+toSpace <- content_transformer(function (x, pattern) gsub(pattern, " ", x))
+temp_corpus <- tm_map(temp_corpus, content_transformer(tolower))
+temp_corpus <- tm_map(temp_corpus, removeNumbers)
+temp_corpus <- tm_map(temp_corpus, removeWords, stopwords("english"))
+temp_corpus <- tm_map(temp_corpus, removePunctuation)
+temp_corpus <- tm_map(temp_corpus, stripWhitespace)
+```
+
+```{r remove_words}
+temp_corpus <- tm_map(temp_corpus, removeWords, c("approximately", "administered", "authors", "days", "dose", "fate", "following", "found", "group", "highest", "hours", "levels", "nature", "present", "respectively", "samples", "similar", "via"))
+```
+
+
+
+```{r}
+dtm <- TermDocumentMatrix(temp_corpus)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m), decreasing = TRUE)
+d <- data.frame(word = names(v), freq=v)
+```
+
+```{r}
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1, max.words = 200, random.order = FALSE, rot.per = 0.35, colors = brewer.pal(8, "Dark2"))
+```
+
