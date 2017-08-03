@@ -34,16 +34,17 @@ pubchem.parse <- function(vec_chemid, vec_index = c("Pharmacology and Biochemist
             
             # Initialize vector to subset individual information
             vec_temp <- vector()
-            if (i == "Pharmacology and Biochemistry" | j == "Use and Manufacturing" | j == "Information") {
+            if (j == "Pharmacology and Biochemistry" | j == "Use and Manufacturing" | j == "Information") {
                 for (k in 1:length(df_chem$Section)) {
                     for (l in 1:length(df_chem$Section[[k]]$Information)) {
                         vec_temp <- c(vec_temp, df_chem$Section[[k]]$Information[[l]]$StringValue)
                     }
                 }
-            } else {
+            } else if (j == "Safety and Hazards") {
                 for (k in 1:length(df_chem$Section)) {
-                    for (l in 1:length(df_chem$Section[[k]]$Information)) {
-                        vec_temp <- c(vec_temp, df_chem$Section[[k]]$Information[[l]]$StringValue)
+                    for (l in 1:length(df_chem$Section[[k]]$Section)) {
+                        for (m in 1:length(df_chem$Section[[k]]$Section[[l]]$Information))
+                        vec_temp <- c(vec_temp, df_chem$Section[[k]]$Section[[l]]$Information[[m]]$StringValue)
                     }
                 }
             }

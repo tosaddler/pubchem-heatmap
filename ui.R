@@ -7,7 +7,9 @@ shinyUI(fluidPage(
 
   sidebarLayout(
     sidebarPanel(
-      textAreaInput("chemid", "Input PubChem CIDs")
+      textAreaInput("chemid", "Input PubChem CIDs", value = "6618\n1983"),
+      checkboxGroupInput("categories", "Select categories", c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification", "Safety and Hazards"),
+                         selected = c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification", "Safety and Hazards"))
     ),
 
     mainPanel(

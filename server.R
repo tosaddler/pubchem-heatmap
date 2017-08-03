@@ -7,7 +7,7 @@ shinyServer(function(input, output) {
     
     compounds.parse <- reactive({
         compounds <- unlist(str_split(input$chemid, "\n"))
-        df <- pubchem.parse(vec_chemid = compounds)
+        df <- pubchem.parse(vec_chemid = compounds, vec_index = input$categories)
         df
     })
     
