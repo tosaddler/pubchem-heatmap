@@ -13,7 +13,8 @@ shinyServer(function(input, output) {
     
     output$heatmap <- renderPlotly({
         df <- compounds.parse()
-        heatmaply(df, dendrogram = FALSE, margins = c(200, 200, NA, 0), colors = cool_warm)
+        heatmaply(df, dendrogram = FALSE, margins = c(200, 200, NA, 0), colors = Blues)
     })
     
 })
+# colors = cool_warm

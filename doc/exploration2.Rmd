@@ -21,6 +21,7 @@ library(stringr)
 library(tm)
 library(SnowballC)
 library(wordcloud)
+library(clusterSim)
 ```
 
 ```{r}

@@ -1,6 +1,8 @@
 require(tidyverse)
 require(jsonlite)
 require(stringr)
+require(data.table)
+require(clusterSim)
 
 pubchem.parse <- function(vec_chemid, vec_index = c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification")) {
     master <- data.frame()
@@ -34,13 +36,13 @@ pubchem.parse <- function(vec_chemid, vec_index = c("Pharmacology and Biochemist
             
             # Initialize vector to subset individual information
             vec_temp <- vector()
-            if (j == "Pharmacology and Biochemistry" | j == "Use and Manufacturing" | j == "Information") {
+            if (j == "Pharmacology and Biochemistry" | j == "Use and Manufacturing" | j == "Identification") {
                 for (k in 1:length(df_chem$Section)) {
                     for (l in 1:length(df_chem$Section[[k]]$Information)) {
                         vec_temp <- c(vec_temp, df_chem$Section[[k]]$Information[[l]]$StringValue)
                     }
                 }
-            } else if (j == "Safety and Hazards") {
+            } else if (j == "Safety and Hazards" | j == "Toxicity") {
                 for (k in 1:length(df_chem$Section)) {
                     for (l in 1:length(df_chem$Section[[k]]$Section)) {
                         for (m in 1:length(df_chem$Section[[k]]$Section[[l]]$Information))
@@ -62,10 +64,17 @@ pubchem.parse <- function(vec_chemid, vec_index = c("Pharmacology and Biochemist
                 df_temp <- bind_cols(df_temp, vec_temp)
             }
         }
+        
+        # Pull info for csvs here
+        # df_lit <- fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i, "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D"))
+        
+        
         master <- bind_rows(master, df_temp)
     }
     
     master <- as.data.frame(sapply(master, function(x) {str_count(x, "\\S+")}))
+    
+    master <- data.Normalization(master, type = "n8")
     
     row.names(master) <- vec_chem_names
     

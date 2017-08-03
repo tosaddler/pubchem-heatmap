@@ -8,8 +8,8 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       textAreaInput("chemid", "Input PubChem CIDs", value = "6618\n1983"),
-      checkboxGroupInput("categories", "Select categories", c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification", "Safety and Hazards"),
-                         selected = c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification", "Safety and Hazards"))
+      checkboxGroupInput("categories", "Select categories", c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification", "Safety and Hazards", "Toxicity"),
+                         selected = c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification", "Safety and Hazards", "Toxicity"))
     ),
 
     mainPanel(
