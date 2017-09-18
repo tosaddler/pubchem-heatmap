@@ -14,7 +14,6 @@ Referenced from http://www.sthda.com/english/wiki/text-mining-and-word-cloud-fun
 
 ```{r}
 library(rjson)
-library(tidyjson)
 library(tidyverse)
 library(jsonlite)
 library(stringr)
@@ -22,6 +21,7 @@ library(tm)
 library(SnowballC)
 library(wordcloud)
 library(clusterSim)
+library(webchem)
 ```
 
 ```{r}
@@ -99,5 +99,11 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 1, max.words = 200, random.o
 
 ```{r}
 strings <- unlist(str_split("6618\n1983", "\n"))
+```
+
+## Webchem testing
+
+```{r}
+cids <- get_cid("39492-91-6")
 ```
 

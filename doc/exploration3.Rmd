@@ -1,0 +1,52 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(jsonlite)
+```
+
+```{r}
+all.e
+```
+
+```{r}
+json <-
+'[
+  {"Name" : "Mario", "Age" : 32, "Occupation" : "Plumber"}, 
+  {"Name" : "Peach", "Age" : 21, "Occupation" : "Princess"},
+  {},
+  {"Name" : "Bowser", "Occupation" : "Koopa"}
+]'
+```
+
+```{r}
+mydf <- fromJSON(json)
+```
+
+```{r}
+test <- fromJSON()
+```
+
+```{r}
+data1 <- fromJSON("https://api.github.com/users/hadley/repos")
+colnames(data1)
+colnames(flatten(data1))
+```
+
+```{r}
+data2 <- fromJSON("https://api.github.com/users/hadly/repos")
+```
+
+```{r}
+df <- read_json(paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/6618",
+                       "/JSON/?response_type=save$response_basename=CID_6618"))
+df <- df$Record$Section
+```
+
+```{r}
+df <- toJSON(df)
+df <- fromJSON(df)
+```
+
