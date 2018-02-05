@@ -173,8 +173,47 @@ $(document).ready(function () {
 
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShSUG9zdGdyZVNRTClcbnBnID0gZGJEcml2ZXIoXCJQb3N0Z3JlU1FMXCIpXG5kYiA8LSBkYkNvbm5lY3QocGcsIGRibmFtZSA9IFwicG9zdGdyZXNcIixcbiAgICAgICAgICAgICAgICAgaG9zdCA9IFwibG9jYWxob3N0XCIsIHBvcnQgPSA1NDMyLFxuICAgICAgICAgICAgICAgICB1c2VyID0gXCJwdWJjaGVtdmlld2VyXCIsIHBhc3N3b3JkID0gXCJsMW9uc2FuZHQxZ2Vyc2FuZGJlYXJzXCIpXG5pZiAoIWRiRXhpc3RzVGFibGUoZGIsIFwicHViY2hlbV9yYXdfY291bnRzXCIpKSB7XG4gICAgZGJTZW5kUXVlcnkoZGIsIFwiQ1JFQVRFIFRBQkxFIHB1YmNoZW1fcmF3X2NvdW50cyhcbiAgICAgICAgICAgICAgICAgICAgICAgIENIRU1fSUQgSU5UIFBSSU1BUlkgS0VZICBOT1QgTlVMTClcIilcbn1cbmBgYCJ9 -->
+<pre class="r"><code>library(RPostgreSQL)
+pg = dbDriver(&quot;PostgreSQL&quot;)
+db &lt;- dbConnect(pg, dbname = &quot;postgres&quot;,
+                 host = &quot;localhost&quot;, port = 5432,
+                 user = &quot;pubchemviewer&quot;, password = &quot;l1onsandt1gersandbears&quot;)
+if (!dbExistsTable(db, &quot;pubchem_raw_counts&quot;)) {
+    dbSendQuery(db, &quot;CREATE TABLE pubchem_raw_counts(
+                        CHEM_ID INT PRIMARY KEY  NOT NULL)&quot;)
+}</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiPFBvc3RncmVTUUxSZXN1bHQ+XG4ifQ== -->
+<pre><code>&lt;PostgreSQLResult&gt;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGFibGVfZmllbGRzIDwtIGRiTGlzdEZpZWxkcyhkYiwgXCJwdWJjaGVtX3Jhd19jb3VudHNcIilcbnRhYmxlX2ZpZWxkc1xuYGBgIn0= -->
+<pre class="r"><code>table_fields &lt;- dbListFields(db, &quot;pubchem_raw_counts&quot;)
+table_fields</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiY2hlbV9pZFwiXG4ifQ== -->
+<pre><code>[1] &quot;chem_id&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGJSZW1vdmVUYWJsZShkYiwgXCJwdWJjaGVtX3Jhd19jb3VudHNcIilcbmBgYCJ9 -->
+<pre class="r"><code>dbRemoveTable(db, &quot;pubchem_raw_counts&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFRSVUVcbiJ9 -->
+<pre><code>[1] TRUE</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiVGVzdGluZyBQb3N0Z3Jlc3FsIENvbm5lY3Rpb25zIgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKLS0tCgoK</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiVGVzdGluZyBQb3N0Z3Jlc3FsIENvbm5lY3Rpb25zIgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKLS0tCgpgYGB7cn0KbGlicmFyeShSUG9zdGdyZVNRTCkKCnBnID0gZGJEcml2ZXIoIlBvc3RncmVTUUwiKQoKZGIgPC0gZGJDb25uZWN0KHBnLCBkYm5hbWUgPSAicG9zdGdyZXMiLAogICAgICAgICAgICAgICAgIGhvc3QgPSAibG9jYWxob3N0IiwgcG9ydCA9IDU0MzIsCiAgICAgICAgICAgICAgICAgdXNlciA9ICJwdWJjaGVtdmlld2VyIiwgcGFzc3dvcmQgPSAibDFvbnNhbmR0MWdlcnNhbmRiZWFycyIpCgppZiAoIWRiRXhpc3RzVGFibGUoZGIsICJwdWJjaGVtX3Jhd19jb3VudHMiKSkgewogICAgZGJTZW5kUXVlcnkoZGIsICJDUkVBVEUgVEFCTEUgcHViY2hlbV9yYXdfY291bnRzKAogICAgICAgICAgICAgICAgICAgICAgICBDSEVNX0lEIElOVCBQUklNQVJZIEtFWSAgTk9UIE5VTEwpIikKfQpgYGAKCmBgYHtyfQoKdGFibGVfZmllbGRzIDwtIGRiTGlzdEZpZWxkcyhkYiwgInB1YmNoZW1fcmF3X2NvdW50cyIpCnRhYmxlX2ZpZWxkcwoKYGBgCgpgYGB7cn0KZGJSZW1vdmVUYWJsZShkYiwgInB1YmNoZW1fcmF3X2NvdW50cyIpCmBgYAoK</div>
 
 
 
