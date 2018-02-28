@@ -1,0 +1,174 @@
+---
+title: "PubChem JSON API"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r knitr, echo=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+```{r install-packages, echo=FALSE}
+install.packages("knitr")
+install.packages("RCurl")
+install.packages("rjson")
+install.packages("rvest")
+```
+
+```{r load-packages, echo=FALSE}
+library(RCurl)
+library(rjson)
+library(rvest)
+library(data.tree)
+library(data.table)
+library(stringr)
+```
+
+
+
+# Pubchem PUG URL's
+
+Most, if not all, of the information the service needs to produce its results is encoded into the URL. The general form of the URL has three parts – input, operation, and output – after the common prefix, followed by operation options as URL arguments (after the ‘?’):
+
+`https://pubchem.ncbi.nlm.nih.gov/rest/pug/<input specification>/<operation specification>/[<output specification>][?<operation_options>]`
+
+```{r}
+compound.id <- "2244"
+```
+
+
+```{r}
+# Import JSON for compound
+compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
+                       compound.id,
+                       "/JSON/?response_type=save$response_basename=CID_",
+                       compound.id)
+
+compound.tree <- compound.url %>%
+                  getURL() %>%
+                  fromJSON() %>%
+                  FromListSimple()
+```
+
+
+```{r compound_tree}
+compound.raw <- getURL(url =
+                    paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
+                           compound.id,
+                           "/JSON/?response_type=save$response_basename=CID_", 
+                           compound.id))
+```
+
+```{r}
+compound.tree <- fromJSON(compound.raw)
+```
+
+
+```{r compound_tree_prune}
+compound.tree <- FromListSimple(compound.tree)
+compound.tree <- compound.tree$Record$Section
+```
+
+```{r initialize.empty.tables}
+master.count <- data.table()
+master.text <- data.table()
+```
+
+# Sections to scrape
+* Pharmacology and Biochemistry
+    + Pharmacology
+    + Absorption, Distribution, and Excretion
+    + Metabolism/Metabolites
+    + Biological Half-Life
+    + Mechanism of Action
+    + Human Metabolite Information
+        - Metabolite Description
+        
+* Use and Manufacturing
+* Identification
+* Safety and Hazards
+* Toxicity
+* PubMed Citations
+* Patents
+* Biosystems and Pathways
+* BioAssay Results
+
+# Pharmacology and Biochemistry
+```{r pharm_bio}
+pharm.bio <- compound.tree$Climb(TOCHeading = "Pharmacology and Biochemistry")$Section
+```
+
+## Pharmacology
+
+```{r pharmacology}
+pharmacology <- ScrapeSection(pharm.bio, "Pharmacology")
+# pharmacology <- pharm.bio$Climb(TOCHeading = "Pharmacology")$Information$Get("StringValue")
+# pharmacology <- pharmacology[!is.na(pharmacology)]
+# pharmacology.text <- CollapseTextVector(pharmacology)
+# pharmacology <- str_count(pharmacology.text, "\\S+")
+```
+
+## Absorption, Distribution, and Excretion
+
+```{r absorption_distribution_excretion}
+absorption <- pharm.bio$Climb(TOCHeading = "Absorption, Distribution and Excretion")$Information$Get("StringValue")
+absorption <- absorption[!is.na(absorption)]
+absorption.text <- CollapseTextVector(absorption)
+absorption <- str_count(absorption.text, "\\S+")
+```
+
+## Biological Half-Life
+
+```{r}
+half.life <- pharm.bio$Climb(TOCHeading = "Biological Half-Life")$Information$Get("StringValue")
+```
+
+## Mechanism of Action
+
+```{r}
+mechanism <- pharm.bio$Climb(TOCHeading = "Mechanism of Action")$Information$Get("StringValue")
+mechanism <- mechanism[!is.na(mechanism)]
+mechanism.text <- CollapseTextVector(mechanism)
+mechanism <- str_count(mechanism.text, "\\S+")
+```
+
+
+```{r}
+mechanism_of_action <- aspirin_pharm_bio$Section$Climb(TOCHeading = "Mechanism of Action")
+```
+
+
+```{r}
+aspirin_literature <- aspirin_$Climb(TOCHeading = "Literature")
+```
+
+```{r}
+aspirin_literature$Get(attribute = "TOCHeading")
+```
+
+```{r}
+aspirin_nature_references <- aspirin_literature$Section$Climb(TOCHeading = "Springer Nature References")
+```
+
+```{r}
+i <- 2244
+df_csv <- fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i, "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D"))
+```
+
+# List of Vectors
+```{r}
+# `Pharmacology and Biochemistry` <- c("Pharmacology", "Absorption, Distribution and Excretion")
+# `Use and Manufacturing` <- c("Methods of Manufacturing", "Consumption")
+sections <- list(`Pharmacology and Biochemistry` = c("Pharmacology", "Absorption, Distribution and Excretion"), `Use and Manufacturing` = c("Methods of Manufacturing", "Consumption"))
+# names(sections) <- c("Pharmacology and Biochemistry", "Use and Manufacturing")
+sections
+```
+
+# Testing pubchem_parse.R
+
+```{r}
+source(file = "../lib/pubchem_parse.R")
+pubchemparse.test <- PubChemParse(c("6618", "2244", "22286931"))
+```
+

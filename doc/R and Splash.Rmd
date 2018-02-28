@@ -1,0 +1,295 @@
+---
+title: "R and Splash"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+
+# Getting things ready
+
+```{r load_devtools}
+library(devtools)
+```
+
+```{r install_packages}
+devtools::install_github("hrbrmstr/splashr")
+```
+
+```{r load_packages}
+library(splashr)
+library(tidyverse)
+library(rvest)
+library(stringr)
+```
+
+## Setting up splash location
+
+```{r docker_splash}
+docker_splash <- splash(host = "192.168.1.155")
+```
+
+I'm running Docker on a local Ubuntu server and the container is there. You can also follow the instructions on the splashr page to learn how to use the built in tools along with harbor to setup a local container.
+
+# Generic function for testing
+
+```{r basic_lua_pubchem}
+lua_pubchem <- '
+function main(splash)
+  assert(splash:go("https://pubchem.ncbi.nlm.nih.gov/compound/2242"))
+  assert(splash:wait(0.5))
+  return splash:html()
+end
+'
+```
+
+
+# Rendering entire page
+
+## lua_pubchem - not working
+
+```{r lua_pubchem_not_working}
+compound_id <- "2242"
+
+pubchem_url <- paste0("https://pubchem.ncbi.nlm.nih.gov/compound/", compound_id)
+
+lua_pubchem <- paste0('
+function main(splash)
+    local pubchem_sections = {"#Pharmacology-and-Biochemistry", "#Absorption-Distribution-and-Excretion"}
+
+    local scroll_to = splash:jsfunc([[
+        function (scroll_section) {
+            $("html,body").animate({scrollTop: $(scroll_section).offset().top}, 0);
+        }
+        ]])
+
+    assert(splash:go("', pubchem_url, '"))
+    splash:wait(1)
+
+    for i = 1, #pubchem_sections do
+        scroll_to(pubchem_sections[i])
+        splash:wait(0.25)
+    end
+
+    return splash:html()
+end
+')
+```
+
+## Raw lua script - not working
+
+```{r not_working}
+    function main(splash)
+    
+        splash:runjs()
+    
+        local pubchem_scroll = splash:jsfunc([[
+            function () {
+                var pubchem_sections = ["Pharmacology-and-Biochemistry", "Absorption-Distribution-and-Excretion"];
+        		for (i = 0; i < pubchem_sections.length; i++) {
+                    $("html,body").animate({scrollTop: $("#"+pubchem_sections[i]).offset().top}, 250);
+        		}
+            }
+            ]])
+    
+        assert(splash:go("https://pubchem.ncbi.nlm.nih.gov/compound/2242"))
+        splash:wait(1)
+        pubchem_scroll()
+    
+        return splash:html()
+    end
+```
+
+## Raw lua autoload script -- not working
+
+```{r}
+function main(splash)
+    splash:autoload([[
+        function pubchem_scroll() {
+            var pubchem_sections = ["Pharmacology-and-Biochemistry", "Absorption-Distribution-and-Excretion"];
+            for (i = 0; i < pubchem_sections.length; i++) {
+                $('html,body').animate({scrollTop: $("#"+pubchem_sections[i]).offset().top}, 250);
+            }
+        }
+    ]])
+  
+  assert(splash:go("https://pubchem.ncbi.nlm.nih.gov/compound/2242"))
+  splash:wait(1)
+  splash:evaljs("pubchem_scroll()")
+  return splash:html()
+end
+```
+
+## Raw lua simple autoload script - WORKS
+
+```{r}
+function main(splash)
+    splash:autoload([[
+        function pubchem_scroll() {
+                $('html,body').animate({scrollTop: $("#Pharmacology-and-Biochemistry").offset().top}, 250);
+            }
+    ]])
+  
+  assert(splash:go("https://pubchem.ncbi.nlm.nih.gov/compound/2242"))
+  splash:wait(1)
+  splash:evaljs("pubchem_scroll()")
+  return splash:html()
+end
+```
+
+## lua_pubchem_module short script - WORKING
+
+```{r}
+compound_id <- "2244" #Aspirin
+
+pubchem_url <- paste0("https://pubchem.ncbi.nlm.nih.gov/compound/", compound_id)
+
+lua_pubchem <- '
+local pubchem = require("pubchem")
+
+function main(splash)
+    assert(splash:go("https://pubchem.ncbi.nlm.nih.gov/compound/2244"))
+    assert(splash:wait(2))
+    
+    pubchem.scroll(splash)
+
+    return splash:html()
+end
+'
+```
+
+## Running the script and sending it to Splash
+
+```{r manual_import}
+compound_html <- read_html(x = "temp/6618.html")
+```
+
+
+```{r}
+compound_raw <- execute_lua(docker_splash, lua_pubchem)
+compound_html <- read_html(rawToChar(compound_raw))
+
+```
+
+```{r}
+compound_text <- rawToChar(compound_raw)
+write_html(compound_html, "compound_html.html")
+```
+
+
+# Sections to scrape
+* Pharmacology and Biochemistry
+    + Pharmacology
+    + Absorption, Distribution, and Excretion
+    + Metabolism/Metabolites
+    + Biological Half-Life
+    + Mechanism of Action
+    + Human Metabolite Information
+        - Metabolite Description
+        
+* Use and Manufacturing
+* Identification
+* Safety and Hazards
+* Toxicity
+* PubMed Citations
+* Patents
+* Biosystems and Pathways
+* BioAssay Results
+
+```{r cactvs_string}
+cactvs_string <-  html_nodes(compound_html, "#Computed-Properties")
+cactvs_string <-  html_nodes(cactvs_string, ".bordered-container")
+cactvs_string <-  html_text(cactvs_string)
+cactvs_string <- stringr::str_extract(cactvs_string, "(?<=Substructure Key Fingerprint).*\\=\\=")
+```
+
+## Pharmacology and Biochemistry
+
+ .breakword
+
+```{r absorption_distribution_excretion}
+absorption_distribution_excretion <-  html_nodes(compound_html, "#Absorption-Distribution-and-Excretion")
+absorption_distribution_excretion <-  html_nodes(absorption_distribution_excretion, ".breakword")
+absorption_distribution_excretion <-  html_text(absorption_distribution_excretion)
+# absorption_distribution_excretion <- as.numeric(stringr::str_extract(absorption_distribution_excretion, "(?<=of ).*"))
+# if (length(absorption_distribution_excretion) == 0) {
+#     absorption_distribution_excretion <- 0
+# }
+```
+
+## Use and Manufacturing
+
+## Identification
+
+## Safety and Hazards
+
+## Toxicity
+
+## Literature
+
+```{r pubmed_citations}
+pubmed_citations <-  html_nodes(compound_html, "#Depositor-Provided-PubMed-Citations")
+pubmed_citations <-  html_nodes(pubmed_citations, ".pagination-summary")
+pubmed_citations <-  html_text(pubmed_citations)
+pubmed_citations <- stringr::str_extract(pubmed_citations, "(?<=of ).*")
+pubmed_citations <- as.numeric(str_replace(pubmed_citations, ",", ""))
+if (length(pubmed_citations) == 0) {
+    
+}
+```
+
+```{r metabolite_references}
+metabolite_references <-  html_nodes(compound_html, "#Metabolite-References")
+metabolite_references <-  html_nodes(metabolite_references, ".pagination-summary")
+metabolite_references <-  html_text(metabolite_references)
+metabolite_references <- as.numeric(stringr::str_extract(metabolite_references, "(?<=of ).*"))
+if (length(metabolite_references) == 0) {
+    metabolite_references <- 0
+}
+```
+
+```{r nature_references}
+nature_references <-  html_nodes(compound_html, "#Springer-Nature-References")
+nature_references <-  html_nodes(nature_references, ".pagination-summary")
+nature_references <-  html_text(nature_references)
+nature_references <- as.numeric(stringr::str_extract(nature_references, "(?<=of ).*"))
+if (length(nature_references) == 0) {
+    nature_references <- 0
+}
+```
+
+## Biomolecular Interactions and Pathways
+
+### Biosystems and Pathways
+
+
+
+## Biological Test Results
+
+```{r bioassay_results}
+bioassay_results <-  html_nodes(compound_html, "#BioAssay-Results")
+bioassay_results <-  html_nodes(bioassay_results, ".pagination-summary")
+bioassay_results <-  html_text(bioassay_results)
+bioassay_results <- as.numeric(stringr::str_extract(bioassay_results, "(?<=of )([^,])*"))
+if (length(bioassay_results) == 0) {
+    bioassay_results <- 0
+}
+```
+
+# Combining results into vector/data frame
+
+```{r}
+compound_df <- data.frame(compound_id, cactvs_string, pubmed_citations, metabolite_references, nature_references)
+```
+
+# Trying to use render_html()
+```{r render_html}
+lua_html <- render_html(splash_obj = docker_splash, url = c("https://pubchem.ncbi.nlm.nih.gov/compound/2244"), wait = 10)
+```
+
+It doesn't really work properly because many of the elements aren't loaded until you scroll down the page. That's why we have to use the custom script to scroll down the page a few times. It might be possible to force specific sections to render which might be a lot quicker.
+

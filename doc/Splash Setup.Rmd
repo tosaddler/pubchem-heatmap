@@ -1,0 +1,27 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Splash Docker Container
+
+```{}
+docker pull scrapinghub/splash
+
+docker run -p 8050:8050 -p 5023:5023 -v /red/pubchem-lua:/etc/splash/lua_modules --name splash scrapinghub/splash --lua-sandbox-allowed-modules 'pubchem'
+
+docker run -it --rm -p 8050:8050 -p 5023:5023 -v /red/pubchem-lua:/etc/splash/lua_modules --name splash scrapinghub/splash:3.1 --lua-sandbox-allowed-modules 'pubchem'
+```
+
+http://splash.readthedocs.io/en/stable/install.html?highlight=modules
+
+# Splash Verbosity
+
+We have common reasons in FAQ (http://splash.readthedocs.io/en/stable/faq.html#website-is-not-rendered-correctly), but it seems you've tried most of them already.
+
+I can also suggest starting Splash with verbosity level 2:
+
+docker run -it --rm -p8050:8050 scrapinghub/splash:3.1
+
+In this case you should be able to check JS console messages in Splash log output; if there are JS errors they may give some ideas on what's going on.
+

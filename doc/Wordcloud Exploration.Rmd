@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Wordcloud Exploration"
 output: html_notebook
 ---
 
@@ -24,30 +24,7 @@ library(clusterSim)
 library(webchem)
 ```
 
-```{r}
-df <- read_json("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/6618/JSON/?response_type=save&response_basename=CID_6618")
-```
-
-```{r}
-df <- df$Record$Section
-```
-
-```{r}
-category_names <- vector()
-for (i in 1:length(df)) {
-    category_names <- c(category_names, df[[i]]$TOCHeading)
-}
-names(df) <- category_names
-```
-
-
-```{r}
-df <- df$Record$Section[[8]]$Section[[1]]$Information
-temp <- vector()
-for (i in 1:length(df)) {
-    temp <- c(temp, df[[i]]$StringValue)
-}
-```
+Use pubchem.parse here to import data.
 
 ```{r url-cleanup}
 for (i in 1:length(temp)) {

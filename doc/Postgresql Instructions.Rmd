@@ -1,31 +1,36 @@
 ---
 title: "Testing Postgresql Connections"
 output: html_notebook
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
 library(RPostgreSQL)
+```
 
+```{r connect_postgres}
 pg = dbDriver("PostgreSQL")
 
 db <- dbConnect(pg, dbname = "postgres",
                  host = "localhost", port = 5432,
-                 user = "pubchemviewer", password = "l1onsandt1gersandbears")
+                 user = "postgres", password = "l1onsandt1gersandbears")
+```
 
+```{r create_pubchem_raw_counts}
 if (!dbExistsTable(db, "pubchem_raw_counts")) {
     dbSendQuery(db, "CREATE TABLE pubchem_raw_counts(
                         CHEM_ID INT PRIMARY KEY  NOT NULL)")
 }
 ```
 
-```{r}
-
+```{r list_pubchem_raw_counts_fields}
 table_fields <- dbListFields(db, "pubchem_raw_counts")
 table_fields
 
 ```
 
-```{r}
+```{r remove_pubchem_raw_counts}
 dbRemoveTable(db, "pubchem_raw_counts")
 ```
 

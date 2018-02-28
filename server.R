@@ -1,19 +1,19 @@
 library(shiny)
 library(shinyHeatmaply)
 
-source("lib/pubchem.parse.R")
+source("lib/pubchem_parse.R")
 
 shinyServer(function(input, output) {
-    
-    compounds.parse <- eventReactive(input$update, {
+
+    CompoundsParse <- eventReactive(input$update, {
         compounds <- unlist(str_split(input$chemid, "\n"))
-        df <- pubchem.parse(vec_chemid = compounds, vec_index = input$categories)
+        df <- PubChemParse(chem.ids = compounds)
         df
     })
-    
-    output$heatmap <- 
+
+    output$heatmap <-
         renderPlotly({
-            df <- compounds.parse()
+            df <- CompoundsParse()
             heatmaply(df, dendrogram = FALSE, margins = c(200, 200, NA, 0), colors = Blues)
         })
 })
