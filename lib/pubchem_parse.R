@@ -13,12 +13,12 @@ CollapseTextVector <- function(vec) {
 
 ScrapeSection <- function(section.node, subsection.heading) {
   subsection <- tryCatch({
-    return(section.node$Climb(TOCHeading = subsection.heading)$Information$Get("StringValue"))
+    temp <- Clone(section.node$Climb(TOCHeading = subsection.heading)$Information)
+    return(temp$Get("StringValue", filterFun = function(x) {x$level == 2}))
   }, error = function(err) {
     print(paste("ScrapeSection: ", err))
     return("")
   })
-  subsection <- subsection[!is.na(subsection)]
   subsection.text <- CollapseTextVector(subsection)
   subsection <- str_count(subsection.text, "\\S+")
   df <- data.frame(subsection, subsection.text)
