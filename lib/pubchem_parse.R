@@ -1,9 +1,11 @@
 require(tidyverse)
 require(jsonlite)
 require(stringr)
-require(data.table)
+require(data.tree)
 require(clusterSim)
 require(data.table)
+
+options(stringsAsFactors = FALSE)
 
 CollapseTextVector <- function(vec) {
   vec <- paste(vec, sep = " ", collapse = " ")
@@ -14,10 +16,10 @@ CollapseTextVector <- function(vec) {
 ScrapeSection <- function(section.node, subsection.heading) {
   subsection <- tryCatch({
     temp <- Clone(section.node$Climb(TOCHeading = subsection.heading)$Information)
-    return(temp$Get("StringValue", filterFun = function(x) {x$level == 2}))
+    temp$Get("StringValue", filterFun = function(x) {x$level == 2})
   }, error = function(err) {
-    print(paste("ScrapeSection: ", err))
-    return("")
+    print(paste("ScrapeSection: subsection", subsection.heading, "does not exist for compound"))
+    ""
   })
   subsection.text <- CollapseTextVector(subsection)
   subsection <- str_count(subsection.text, "\\S+")
@@ -27,12 +29,19 @@ ScrapeSection <- function(section.node, subsection.heading) {
 }
 
 CreateSectionsList <- function() {
-  sections <- list(`Pharmacology and Biochemistry` =
-                         c("Pharmacology",
-                           "Absorption, Distribution and Excretion"),
-                     `Use and Manufacturing` =
-                         c("Methods of Manufacturing",
-                           "Consumption"))
+  sections <- list( `Pharmacology and Biochemistry` =
+                        c("Pharmacology",
+                          "Absorption, Distribution and Excretion",
+                          "Metabolism/Metabolites",
+                          "Biological Half-Life",
+                          "Mechanism of Action"),
+                    `Use and Manufacturing` =
+                        c("Methods of Manufacturing",
+                          "Consumption"),
+                    `Identification` =
+                        c("Analytic Laboratory Methods",
+                          "Clinical Laboratory Methods")
+                   )
   return(sections)
 }
 
@@ -70,14 +79,14 @@ PubChemParse <- function(chem.ids) {
 
     for (j in 1:length(pubchem.sections)) {
 
-      section.node <- compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
+      # section.node <- compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
 
-      # section.node <- tryCatch({
-      #   return(compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section)
-      # }, error = function(err) {
-      #   print(paste("Error: Section does not exist."))
-      #   return(Node$new("blankNode"))
-      # })
+      section.node <- tryCatch({
+        compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
+      }, error = function(err) {
+        print(paste('Error: Section', pubchem.sections[[j]], 'does not exist for compound', chem.ids[[i]]))
+        Node$new("blankNode")
+      })
 
       for (k in 1:length(pubchem.sections[[j]])) {
         temp.section <- ScrapeSection(section.node, pubchem.sections[[j]][[k]])
@@ -86,17 +95,21 @@ PubChemParse <- function(chem.ids) {
     }
 
     # Literature Sections
-    # pubmed_citations <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i, "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D")))
-    # patent_identifiers <-  nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22patentid%22%5D,%22collection%22:%22patent%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i,"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22patentsubmdate%22,%22patentgrantdate%22%5D%7D%5D")))
-    # biosystems_pathways <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i,"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
-    # bioassay_results <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i, "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D")))
+    # pubmed.citations <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D")))
+    # patent.identifiers <-  nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22patentid%22%5D,%22collection%22:%22patent%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22patentsubmdate%22,%22patentgrantdate%22%5D%7D%5D")))
+    # biosystems_pathways <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+    # bioassay_results <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D")))
 
     # TODO Insert function to write completed table to database
 
     master <- bind_rows(master, compound.temp)
   }
 
-  master <- data.Normalization(master, type = "n8")
+  # master.text <- master %>%
+  #                   select(contains(".text"))
+  # master <-
+  #
+  # master <- data.Normalization(master, type = "n8")
 
   # row.names(master) <- chem.ids
 

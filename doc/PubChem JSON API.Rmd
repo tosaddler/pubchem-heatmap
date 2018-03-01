@@ -9,7 +9,7 @@ editor_options:
 knitr::opts_knit$set(root.dir = normalizePath(".."))
 ```
 
-```{r install-packages, echo=FALSE}
+```{r install.packages, echo=FALSE, eval=FALSE}
 install.packages("RCurl")
 install.packages("rjson")
 install.packages("rvest")
@@ -23,20 +23,21 @@ install.packages("devtools")
 library(devtools)
 ```
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
 devtools::install_github(repo = "data.tree", username = "gluc")
 ```
 
-```{r load-packages, echo=FALSE}
+```{r load.packages, echo=FALSE}
 library(RCurl)
-library(rjson)
+library(jsonlite)
 library(rvest)
 library(data.tree)
 library(data.table)
 library(stringr)
+library(tidyverse)
 ```
 
-```{r}
+```{r source.pubchem.parse}
 source("lib/pubchem_parse.R")
 ```
 
@@ -48,7 +49,7 @@ Most, if not all, of the information the service needs to produce its results is
 `https://pubchem.ncbi.nlm.nih.gov/rest/pug/<input specification>/<operation specification>/[<output specification>][?<operation_options>]`
 
 ```{r}
-compound.id <- "2244"
+compound.id <- "6618"
 ```
 
 
@@ -60,12 +61,11 @@ compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/comp
                        compound.id)
 
 compound.tree <- compound.url %>%
-                  getURL() %>%
-                  fromJSON() %>%
+                  read_json() %>%
                   FromListSimple()
 ```
 
-```{r compound_tree_prune}
+```{r compound.tree.prune}
 compound.tree <- compound.tree$Record$Section
 ```
 
@@ -75,6 +75,7 @@ master.text <- data.table()
 ```
 
 # Sections to scrape
+* CACTVS String
 * Pharmacology and Biochemistry
     + Pharmacology
     + Absorption, Distribution, and Excretion
@@ -93,8 +94,18 @@ master.text <- data.table()
 * Biosystems and Pathways
 * BioAssay Results
 
+# CACTVS String
+```{r}
+chem.phys.prop <- compound.tree$Climb(TOCHeading = "Chemical and Physical Properties")$Section
+```
+
+```{r}
+cactvs <- chem.phys.prop$Climb(TOCHeading = "Computed Properties")$Information
+```
+
+
 # Pharmacology and Biochemistry
-```{r pharm_bio}
+```{r pharm.bio}
 pharm.bio <- compound.tree$Climb(TOCHeading = "Pharmacology and Biochemistry")$Section
 ```
 
@@ -102,19 +113,17 @@ pharm.bio <- compound.tree$Climb(TOCHeading = "Pharmacology and Biochemistry")$S
 
 ```{r pharmacology}
 pharmacology <- ScrapeSection(pharm.bio, "Pharmacology")
-# pharmacology <- pharm.bio$Climb(TOCHeading = "Pharmacology")$Information$Get("StringValue")
-# pharmacology <- pharmacology[!is.na(pharmacology)]
-# pharmacology.text <- CollapseTextVector(pharmacology)
-# pharmacology <- str_count(pharmacology.text, "\\S+")
 ```
 
 ## Absorption, Distribution, and Excretion
 
 ```{r absorption_distribution_excretion}
-absorption <- pharm.bio$Climb(TOCHeading = "Absorption, Distribution and Excretion")$Information$Get("StringValue")
-absorption <- absorption[!is.na(absorption)]
-absorption.text <- CollapseTextVector(absorption)
-absorption <- str_count(absorption.text, "\\S+")
+absorption <- ScrapeSection(pharm.bio, "Metabolism/Metabolites")
+
+# absorption <- Clone(pharm.bio$Climb(TOCHeading = "Absorption, Distribution and Excretion")$Information)
+# absorption <- absorption$Get("StringValue", filterFun = function(x) {x$level == 2})
+# absorption.text <- CollapseTextVector(absorption)
+# absorption <- str_count(absorption.text, "\\S+")
 ```
 
 ## Biological Half-Life
