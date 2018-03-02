@@ -45,14 +45,20 @@ CreateSectionsList <- function() {
   return(sections)
 }
 
-PubChemParse <- function(chem.ids) {
+DbSafeNames = function(names) {
+    names = gsub('[^a-z0-9]+','_',tolower(names))
+    names = make.names(names, unique=TRUE, allow_=TRUE)
+    names = gsub('.','_',names, fixed=TRUE)
+    names
+}
+
+
+
+PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
 
   master <- data.frame()
 
   pubchem.sections <- CreateSectionsList()
-
-  # TODO(tosaddler): Put function here that checks if there is a database
-  # entry for the compounds.
 
   # TODO(tosaddler): If database entry exists and is up-to-date, then
   # pull those compounds and add them to the master data frame.
@@ -61,46 +67,64 @@ PubChemParse <- function(chem.ids) {
 
   for (i in 1:length(chem.ids)) {
 
-    # Initialize temporary data frame to pull info from each section
-    compound.temp <- data.frame(compound.id = as.numeric(chem.ids[[i]]))
+    if (db.bypass == FALSE) {
+        compound.temp <- dbGetQuery(db, paste("select",
+                                              chem.ids[[i]],
+                                              "from pubchem_raw_counts")
 
-    # Import JSON for compound
-    compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
-                           chem.ids[i],
-                           "/JSON/?response_type=save$response_basename=CID_",
-                           chem.ids[i])
+    } else {
+      # Initialize temporary data frame to pull info from each section
+      compound.temp <- data.frame(compound.id = as.numeric(chem.ids[[i]]))
 
-    compound.tree <- compound.url %>%
-                      read_json() %>%
-                      FromListSimple()
+      # Import JSON for compound
+      compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
+                             chem.ids[i],
+                             "/JSON/?response_type=save$response_basename=CID_",
+                             chem.ids[i])
 
-    # Simplifying to the section we need, other section contains references
-    compound.tree <- compound.tree$Record$Section
+      compound.tree <- compound.url %>%
+                        read_json() %>%
+                        FromListSimple()
 
-    for (j in 1:length(pubchem.sections)) {
+      # Simplifying to the section we need, other section contains references
+      compound.tree <- compound.tree$Record$Section
 
-      # section.node <- compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
+      for (j in 1:length(pubchem.sections)) {
 
-      section.node <- tryCatch({
-        compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
-      }, error = function(err) {
-        print(paste('Error: Section', pubchem.sections[[j]], 'does not exist for compound', chem.ids[[i]]))
-        Node$new("blankNode")
-      })
+        # section.node <- compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
 
-      for (k in 1:length(pubchem.sections[[j]])) {
-        temp.section <- ScrapeSection(section.node, pubchem.sections[[j]][[k]])
-        compound.temp <- bind_cols(compound.temp, temp.section)
+        section.node <- tryCatch({
+          compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
+        }, error = function(err) {
+          print(paste('Error: Section', pubchem.sections[[j]], 'does not exist for compound', chem.ids[[i]]))
+          Node$new("blankNode")
+        })
+
+        for (k in 1:length(pubchem.sections[[j]])) {
+          temp.section <- ScrapeSection(section.node, pubchem.sections[[j]][[k]])
+          compound.temp <- bind_cols(compound.temp, temp.section)
+        }
       }
+
+      # Literature Sections
+      # pubmed.citations <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D")))
+      # patent.identifiers <-  nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22patentid%22%5D,%22collection%22:%22patent%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22patentsubmdate%22,%22patentgrantdate%22%5D%7D%5D")))
+      # biosystems_pathways <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+      # bioassay_results <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D")))
+
+      # TODO Insert function to write completed table to database
+
+      compound.text <- select(compound.temp, contains(".text"))
+
+      dbWriteTable(conn = db,
+                   name = "pubchem_text",
+                   value = compound.text,
+                   row.names = FALSE,
+                   append = TRUE
+                  )
+
+      compound.temp <- select(compound.temp, !contains(".text"))
     }
-
-    # Literature Sections
-    # pubmed.citations <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D")))
-    # patent.identifiers <-  nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22patentid%22%5D,%22collection%22:%22patent%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22patentsubmdate%22,%22patentgrantdate%22%5D%7D%5D")))
-    # biosystems_pathways <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
-    # bioassay_results <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D")))
-
-    # TODO Insert function to write completed table to database
 
     master <- bind_rows(master, compound.temp)
   }
