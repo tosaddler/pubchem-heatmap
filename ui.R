@@ -50,10 +50,14 @@ shinyUI(
 
              checkboxInput(      inputId  =   "clustering",
                                  label    =   "Cluster compounds",
-                                 value    =   TRUE),
+                                 value    =   FALSE),
 
              checkboxInput(      inputId  =   "bypass",
                                  label    =   "Bypass database",
+                                 value    =   TRUE),
+
+             checkboxInput(      inputId  =   "chem.names",
+                                 label    =   "Use compound names",
                                  value    =   TRUE)
 
           )

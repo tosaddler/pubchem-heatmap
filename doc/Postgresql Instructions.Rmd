@@ -17,12 +17,24 @@ db <- dbConnect(pg, dbname = "postgres",
                  user = "postgres", password = "l1onsandt1gersandbears")
 ```
 
-```{r create_pubchem_raw_counts}
+```{r create_pubchem_text}
 if (!dbExistsTable(db, "pubchem_raw_counts")) {
     dbSendQuery(db, "CREATE TABLE pubchem_raw_counts(
+                        chem_id INT PRIMARY KEY  NOT NULL)")
+}
+```
+
+```{r create_pubchem_raw_counts}
+if (!dbExistsTable(db, "pubchem_text")) {
+    dbSendQuery(db, "CREATE TABLE pubchem_text(
                         CHEM_ID INT PRIMARY KEY  NOT NULL)")
 }
 ```
+
+```{r}
+RPostgreSQL::
+```
+
 
 ```{r list_pubchem_raw_counts_fields}
 table_fields <- dbListFields(db, "pubchem_raw_counts")

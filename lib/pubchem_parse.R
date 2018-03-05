@@ -85,6 +85,9 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
       # Simplifying to the section we need, other section contains references
       compound.tree <- compound.tree$Record$Section
 
+      # Pulling compound name
+      compound.name <-
+
       # Pulling CACTVS String for clustering
       chem.phys.prop <- compound.tree$Climb(TOCHeading = "Chemical and Physical Properties")$Section
       computed.prop <- chem.phys.prop$Climb(TOCHeading = "Computed Properties")$Information$`1`$Table$Row
