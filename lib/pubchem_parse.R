@@ -153,13 +153,5 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
     master <- bind_rows(master, compound.temp)
   }
 
-  # master.text <- master %>%
-  #                   select(contains(".text"))
-  # master <-
-  #
-  # master <- data.Normalization(master, type = "n8")
-
-  # row.names(master) <- chem.ids
-
   return(master)
 }
