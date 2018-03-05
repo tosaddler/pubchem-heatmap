@@ -169,6 +169,6 @@ df_csv <- fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=
 
 ```{r}
 source(file = "../lib/pubchem_parse.R")
-pubchemparse.test <- PubChemParse(c("6618", "2244", "22286931"))
+pubchemparse.test <- PubChemParse(c("6618", "2244", "22286931"), NULL, db.bypass = TRUE)
 ```
 

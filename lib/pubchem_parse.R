@@ -1,9 +1,10 @@
-require(tidyverse)
 require(jsonlite)
 require(stringr)
 require(data.tree)
 require(clusterSim)
 require(data.table)
+require(RPostgreSQL)
+require(tidyverse)
 
 options(stringsAsFactors = FALSE)
 
@@ -51,8 +52,6 @@ DbSafeNames = function(names) {
     names = gsub('.','_',names, fixed=TRUE)
     names
 }
-
-
 
 PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
 
@@ -123,17 +122,18 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
       # bioassay.results <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D")))
 
       # TODO Insert function to write completed table to database
+      if (db.bypass == FALSE) {
+        compound.text <- dplyr::select(compound.temp, contains(".text"))
 
-      compound.text <- select(compound.temp, contains(".text"))
+        dbWriteTable(conn = db,
+                     name = "pubchem_text",
+                     value = compound.text,
+                     row.names = FALSE,
+                     append = TRUE
+                    )
+      }
 
-      dbWriteTable(conn = db,
-                   name = "pubchem_text",
-                   value = compound.text,
-                   row.names = FALSE,
-                   append = TRUE
-                  )
-
-      compound.temp <- select(compound.temp, !contains(".text"))
+      compound.temp <- dplyr::select(compound.temp, -contains(".text"))
     }
 
     master <- bind_rows(master, compound.temp)
