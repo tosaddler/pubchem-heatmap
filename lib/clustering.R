@@ -1,17 +1,17 @@
 require(tidyverse)
 
 ClusterCompounds <- function(df) {
-  # row.names(df) <- as.vector(df$compound.id)
-  # df <- dplyr::select(df, -compound.id, -cactvs.info)
+  # df.dend <-
+  # return(df.dend)
   return(df)
 }
 
 FinalizeDF <- function(df, chem.names) {
   if (chem.names == TRUE) {
-    row.names(df) <- as.vector(df$compound.name)
+    row.names(df) <- as.vector(df$name.info)
   } else {
     row.names(df) <- as.vector(df$compound.id)
   }
-  df <- dplyr::select(df, -compound.id, -cactvs.info, -compound.name)
+  df <- dplyr::select(df, -compound.id, -cactvs.info, -name.info)
   return(df)
 }

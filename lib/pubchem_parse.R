@@ -86,7 +86,7 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
       compound.tree <- compound.tree$Record$Section
 
       # Pulling compound name
-      compound.name <-
+      compound.name <- compound.tree$Climb(TOCHeading = "Names and Identifiers")$Section$`1`$Information$`1`$StringValue
 
       # Pulling CACTVS String for clustering
       chem.phys.prop <- compound.tree$Climb(TOCHeading = "Chemical and Physical Properties")$Section
@@ -96,7 +96,9 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
       names(cactvs) <- "cactvs.info"
 
       # Initialize temporary data frame to pull info from each section
-      compound.temp <- data.frame(compound.id = as.numeric(chem.ids[[i]]), cactvs.info = cactvs)
+      compound.temp <- data.frame(compound.id   = as.numeric(chem.ids[[i]]),
+                                  name.info = compound.name,
+                                  cactvs.info   = cactvs)
 
       for (j in 1:length(pubchem.sections)) {
 
@@ -137,6 +139,15 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
       }
 
       compound.temp <- dplyr::select(compound.temp, -contains(".text"))
+
+      if (db.bypass == FALSE) {
+        dbWriteTable(conn = db,
+                     name = "pubchem_raw_counts",
+                     value = compound.temp,
+                     row.names = FALSE,
+                     append = TRUE
+        )
+      }
     }
 
     master <- bind_rows(master, compound.temp)

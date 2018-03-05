@@ -94,6 +94,13 @@ master.text <- data.table()
 * Biosystems and Pathways
 * BioAssay Results
 
+# Compound Name
+
+```{r}
+compound.name <- compound.tree$Climb(TOCHeading = "Names and Identifiers")$Section$`1`$Information$`1`$StringValue
+```
+
+
 # CACTVS String
 ```{r}
 chem.phys.prop <- compound.tree$Climb(TOCHeading = "Chemical and Physical Properties")$Section
