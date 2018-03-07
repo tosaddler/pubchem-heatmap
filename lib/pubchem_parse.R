@@ -6,6 +6,8 @@ require(data.table)
 require(RPostgreSQL)
 require(tidyverse)
 
+source("lib/pubchem_sections.R")
+
 options(stringsAsFactors = FALSE)
 
 CollapseTextVector <- function(vec) {
@@ -29,27 +31,29 @@ ScrapeSection <- function(section.node, subsection.heading) {
   return(df)
 }
 
-CreateSectionsList <- function() {
-  sections <- list( `Pharmacology and Biochemistry` =
-                        c("Pharmacology",
-                          "Absorption, Distribution and Excretion",
-                          "Metabolism/Metabolites",
-                          "Biological Half-Life",
-                          "Mechanism of Action"),
-                    `Use and Manufacturing` =
-                        c("Methods of Manufacturing",
-                          "Consumption"),
-                    `Identification` =
-                        c("Analytic Laboratory Methods",
-                          "Clinical Laboratory Methods")
-                   )
-  return(sections)
+GetSectionNode <- function(parent.node, section.heading) {
+  section.node <- tryCatch({
+    parent.node$Climb(TOCHeading = section.heading)$Section
+  }, error = function(err) {
+    print(paste('Error: Section', section.heading, 'does not exist for compound'))
+    Node$new("blankNode")
+  })
+  return(section.node)
+}
+
+JoinTempDF <- function(main.df, temp.df) {
+  if (length(main.df) == 0) {
+    main.df <- temp.df
+  } else {
+    main.df <- bind_cols(main.df, temp.df)
+  }
+  return(main.df)
 }
 
 DbSafeNames = function(names) {
     names = gsub('[^a-z0-9]+','_',tolower(names))
-    names = make.names(names, unique=TRUE, allow_=TRUE)
-    names = gsub('.','_',names, fixed=TRUE)
+    names = make.names(names, unique = TRUE, allow_ = TRUE)
+    names = gsub('.','_',names, fixed = TRUE)
     names
 }
 
@@ -57,7 +61,7 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
 
   master <- data.frame()
 
-  pubchem.sections <- CreateSectionsList()
+  pubchem.sections <- PubChemSections()
 
   # TODO(tosaddler): If database entry exists and is up-to-date, then
   # pull those compounds and add them to the master data frame.
@@ -96,25 +100,48 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
       names(cactvs) <- "cactvs.info"
 
       # Initialize temporary data frame to pull info from each section
-      compound.temp <- data.frame(compound.id   = as.numeric(chem.ids[[i]]),
-                                  name.info = compound.name,
-                                  cactvs.info   = cactvs)
+      compound.temp <- data.frame(compound.id = as.numeric(chem.ids[[i]]),
+                                  name.info   = compound.name,
+                                  cactvs.info = cactvs)
 
       for (j in 1:length(pubchem.sections)) {
 
-        # section.node <- compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
+        section.temp <- data.frame()
 
-        section.node <- tryCatch({
-          compound.tree$Climb(TOCHeading = names(pubchem.sections)[[j]])$Section
-        }, error = function(err) {
-          print(paste('Error: Section', pubchem.sections[[j]], 'does not exist for compound', chem.ids[[i]]))
-          Node$new("blankNode")
-        })
+        section.node <- GetSectionNode(compound.tree, names(pubchem.sections)[[j]])
 
         for (k in 1:length(pubchem.sections[[j]])) {
-          temp.section <- ScrapeSection(section.node, pubchem.sections[[j]][[k]])
-          compound.temp <- bind_cols(compound.temp, temp.section)
+
+          if (class(pubchem.sections[[j]]) == "list") {
+            subsection.node <- GetSectionNode(section.node,
+                                              names(pubchem.sections[[j]])[[k]])
+            subsection.temp <- data.frame()
+
+            for (l in 1:length(pubchem.sections[[j]][[k]])) {
+              temp.df <- ScrapeSection(subsection.node,
+                                               pubchem.sections[[j]][[k]][[l]])
+              subsection.temp <- JoinTempDF(subsection.temp, temp.df)
+            }
+
+            subsection.count <- dplyr::select(subsection.temp, -contains(".text"))
+            subsection.total <- data.frame(rowSums(subsection.count))
+            subsection.text <-  dplyr::select(subsection.temp, contains(".text"))
+            subsection.text <- CollapseTextVector(subsection.text[[1]])
+            subsection.temp <- data.frame(subsection.total, subsection.text)
+            names(subsection.temp) <- c(names(pubchem.sections[[j]])[[k]],
+                                        paste0(names(pubchem.sections[[j]])[[k]], ".text"))
+          } else {
+            subsection.temp <- ScrapeSection(section.node, pubchem.sections[[j]][[k]])
+          }
+
+          section.temp <- JoinTempDF(section.temp, subsection.temp)
         }
+
+        section.count <- dplyr::select(section.temp, -contains(".text"))
+        section.total <- data.frame(rowSums(section.count))
+        names(section.total) <- names(pubchem.sections)[[j]]
+
+        compound.temp <- data.frame(compound.temp, section.total, section.temp, check.names = FALSE)
       }
 
 

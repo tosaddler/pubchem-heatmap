@@ -34,12 +34,12 @@ shinyServer(function(input, output) {
                   dendrogram = "row",
                   RowV = df.dend,
                   row_dend_left = FALSE,
-                  margins = c(200, 200, NA, 0),
+                  # margins = c(200, 200, NA, 0),
                   colors = Blues)
       } else {
         heatmaply(df,
                   dendrogram = FALSE,
-                  margins = c(200, 200, NA, 0),
+                  # margins = c(200, 200, NA, 0),
                   colors = Blues)
       }
 

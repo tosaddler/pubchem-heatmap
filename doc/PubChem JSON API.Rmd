@@ -49,7 +49,7 @@ Most, if not all, of the information the service needs to produce its results is
 `https://pubchem.ncbi.nlm.nih.gov/rest/pug/<input specification>/<operation specification>/[<output specification>][?<operation_options>]`
 
 ```{r}
-compound.id <- "6618"
+compound.id <- "2244"
 ```
 
 
@@ -88,6 +88,10 @@ master.text <- data.table()
 * Use and Manufacturing
 * Identification
 * Safety and Hazards
+    + Hazards Identification
+        - GHS Classification
+        - Health Hazard
+        - Fire Hazard
 * Toxicity
 * PubMed Citations
 * Patents
@@ -126,11 +130,6 @@ pharmacology <- ScrapeSection(pharm.bio, "Pharmacology")
 
 ```{r absorption_distribution_excretion}
 absorption <- ScrapeSection(pharm.bio, "Metabolism/Metabolites")
-
-# absorption <- Clone(pharm.bio$Climb(TOCHeading = "Absorption, Distribution and Excretion")$Information)
-# absorption <- absorption$Get("StringValue", filterFun = function(x) {x$level == 2})
-# absorption.text <- CollapseTextVector(absorption)
-# absorption <- str_count(absorption.text, "\\S+")
 ```
 
 ## Biological Half-Life
@@ -146,6 +145,25 @@ mechanism <- pharm.bio$Climb(TOCHeading = "Mechanism of Action")$Information$Get
 mechanism <- mechanism[!is.na(mechanism)]
 mechanism.text <- CollapseTextVector(mechanism)
 mechanism <- str_count(mechanism.text, "\\S+")
+```
+# Safety and Hazards
+
+```{r}
+safety <- GetSectionNode(compound.tree, "Safety and Hazards")
+```
+## Hazards Identification
+
+```{r}
+hazards.ident <- GetSectionNode(safety, "Hazards Identification")
+```
+### GHS Classification
+
+```{r}
+ghs.classification <- ScrapeSection(hazards.ident, "GHS Classification")
+```
+
+```{r}
+ghs.scraped <- ScrapeSection(hazards.ident, "GHS Classification")
 ```
 
 
