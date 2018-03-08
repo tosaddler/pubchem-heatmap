@@ -23,6 +23,52 @@ SelectSections <- function(df,
       temp <- bind_cols(temp, temp.df)
     }
   }
+  if (use_manufacturing == TRUE) {
+    if (length(use_manufacturing_sections) > 0) {
+      temp.df <- dplyr::select(df, one_of(use_manufacturing_sections))
+      temp <- bind_cols(temp, temp.df)
+    } else {
+      temp.df <- dplyr::select(df, matches("Use and Manufacturing"))
+      temp <- bind_cols(temp, temp.df)
+    }
+    if (identification == TRUE) {
+      if (length(pharm_bio_sections) > 0) {
+        temp.df <- dplyr::select(df, one_of(identification_sections))
+        temp <- bind_cols(temp, temp.df)
+      } else {
+        temp.df <- dplyr::select(df, matches("Identification"))
+        temp <- bind_cols(temp, temp.df)
+      }
+    }
+    if (safety == TRUE) {
+      if (length(safety_sections) > 0) {
+        temp.df <- dplyr::select(df, one_of(safety_sections))
+        temp <- bind_cols(temp, temp.df)
+      } else {
+        temp.df <- dplyr::select(df, matches("Safety and Hazards"))
+        temp <- bind_cols(temp, temp.df)
+      }
+    }
+    if (toxicity == TRUE) {
+      if (length(toxicity_sections) > 0) {
+        temp.df <- dplyr::select(df, one_of(toxicity_sections))
+        temp <- bind_cols(temp, temp.df)
+      } else {
+        temp.df <- dplyr::select(df, matches("Toxicity"))
+        temp <- bind_cols(temp, temp.df)
+      }
+    }
+    if (literature == TRUE) {
+      if (length(literature_sections) > 0) {
+        temp.df <- dplyr::select(df, one_of(literature_sections))
+        temp <- bind_cols(temp, temp.df)
+      } else {
+        temp.df <- dplyr::select(df, matches("Literature"))
+        temp <- bind_cols(temp, temp.df)
+      }
+    }
+  }
+
   return(temp)
 }
 
