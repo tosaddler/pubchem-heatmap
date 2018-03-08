@@ -1,11 +1,11 @@
+require(tidyverse)
 require(jsonlite)
 require(stringr)
 require(data.tree)
 require(clusterSim)
 require(data.table)
 require(RPostgreSQL)
-require(tidyverse)
-
+require(data.table)
 source("lib/pubchem_sections.R")
 
 options(stringsAsFactors = FALSE)
@@ -147,10 +147,28 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
 
 
       # Literature Sections
-      # pubmed.citations <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D")))
-      # metabolite.references <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22cid%22,%22pmid%22,%22reference%22%5D,%22collection%22:%22hmdb%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+      pubmed.citations <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D")))
+      metabolite.ref <-      nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22cid%22,%22pmid%22,%22reference%22%5D,%22collection%22:%22hmdb%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+      nature.ref <-          nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22articletitle%22,%22articlejourname%22,%22articlepubdate%22,%22pmid%22,%22url%22,%22openaccess%22%5D,%22collection%22:%22springernature%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22scorefloat,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+
+      lit.total <- sum(pubmed.citations, metabolite.ref, nature.ref)
+
+      literature <- data.frame(`Literature` = lit.total,
+                               `PubMed Citations` = pubmed.citations,
+                               `Metabolite References` = metabolite.ref,
+                               `Springer Nature References` = nature.ref)
+
+      compound.temp <- bind_cols(compound.temp, literature)
+
       # patent.identifiers <-  nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22patentid%22%5D,%22collection%22:%22patent%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22patentsubmdate%22,%22patentgrantdate%22%5D%7D%5D")))
-      # biosystems.pathways <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+
+      # Biomolecular Pathways
+      biosystems.pathways <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+      bio.path <- data.frame(`Biomolecular Interactions and Pathways` = biosystems.pathways,
+                             `Biosystems and Pathways` = biosystems.pathways)
+
+      compound.temp <- bind_cols(compound.temp, bio.path)
+      #
       # bioassay.results <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D")))
 
       # TODO Insert function to write completed table to database

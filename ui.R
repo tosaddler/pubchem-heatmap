@@ -94,7 +94,6 @@ shinyUI(
                   checkboxGroupInput(inputId =   "literature_sections",
                                      label   = NULL,
                                      choices = c("PubMed Citations",
-                                                 "General References",
                                                  "Metabolite References",
                                                  "Springer Nature References"))
                 ),
@@ -104,8 +103,9 @@ shinyUI(
                                     value    =   TRUE),
 
                 conditionalPanel(   condition = "input.bio_path == true",
-                  checkboxInput(     inputId =   "bio_path_sections",
-                                      label   = "Biosystems and Pathways")
+                  checkboxGroupInput( inputId =   "bio_path_sections",
+                                      label   = NULL,
+                                      choices = c("Biosystems and Pathways"))
                 )
 
               ),
