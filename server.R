@@ -4,6 +4,7 @@ require(clusterSim)
 
 source("lib/pubchem_parse.R")
 source("lib/clustering.R")
+source("lib/select_sections.R")
 
 shinyServer(function(input, output) {
 
@@ -20,6 +21,22 @@ shinyServer(function(input, output) {
       if (input$clustering == TRUE) {
         df.dend <- ClusterCompounds(df)
       }
+
+      df <- SelectSections(df,
+                           input$pharm_bio,
+                           input$pharm_bio_sections,
+                           input$use_manufacturing,
+                           input$use_manufacturing_sections,
+                           input$identification,
+                           input$identification_sections,
+                           input$safety,
+                           input$safety_sections,
+                           input$toxicity,
+                           input$toxicity_sections,
+                           input$literature,
+                           input$literature_sections,
+                           input$bio_path,
+                           input$bio_path_sections)
 
       df <- FinalizeDF(df, input$chem.names)
 

@@ -26,9 +26,9 @@ shinyUI(
                                     label    =   "Pharmacology and Biochemistry",
                                     value    =   TRUE),
 
-                conditionalPanel(   condition = "input.pharm_bio == true",
+                conditionalPanel(  condition =  "input.pharm_bio == true",
                   checkboxGroupInput(inputId =   "pharm_bio_sections",
-                                     label   = NULL,
+                                     label   =   NULL,
                                      choices = c("Pharmacology",
                                                  "Absorption, Distribution and Excretion",
                                                  "Metabolism/Metabolites",
@@ -40,8 +40,8 @@ shinyUI(
                                     label    =   "Use and Manufacturing",
                                     value    =   TRUE),
 
-                conditionalPanel(   condition = "input.use_manufacturing == true",
-                  checkboxGroupInput(inputId =   "use_man_sections",
+                conditionalPanel(    condition = "input.use_manufacturing == true",
+                  checkboxGroupInput(inputId   =   "use_man_sections",
                                      label   = NULL,
                                      choices = c("Methods of Manufacturing",
                                                  "Consumption"))
@@ -64,7 +64,7 @@ shinyUI(
 
                 conditionalPanel(   condition = "input.safety == true",
                   checkboxGroupInput(inputId =   "safety_sections",
-                                    label   = NULL,
+                                     label   = NULL,
                                      choices = c("Hazards Identification",
                                                  "Safety and Hazard Properties",
                                                  "First Aid Measures",
@@ -80,10 +80,10 @@ shinyUI(
                                     value    =   TRUE),
 
                 conditionalPanel(   condition = "input.toxicity == true",
-                                    checkboxGroupInput(inputId =   "toxicity_sections",
-                                                       label   = NULL,
-                                                       choices = c("Toxicological Information",
-                                                                   "Ecological Information"))
+                  checkboxGroupInput(inputId =   "toxicity_sections",
+                                    label   = NULL,
+                                     choices = c("Toxicological Information",
+                                                 "Ecological Information"))
                 ),
 
                 checkboxInput(      inputId  =   "literature",
@@ -91,12 +91,12 @@ shinyUI(
                                     value    =   TRUE),
 
                 conditionalPanel(   condition = "input.literature == true",
-                                    checkboxGroupInput(inputId =   "literature_sections",
-                                                       label   = NULL,
-                                                       choices = c("PubMed Citations",
-                                                                   "General References",
-                                                                   "Metabolite References",
-                                                                   "Springer Nature References"))
+                  checkboxGroupInput(inputId =   "literature_sections",
+                                     label   = NULL,
+                                     choices = c("PubMed Citations",
+                                                 "General References",
+                                                 "Metabolite References",
+                                                 "Springer Nature References"))
                 ),
 
                 checkboxInput(      inputId  =   "bio_path",
@@ -104,7 +104,7 @@ shinyUI(
                                     value    =   TRUE),
 
                 conditionalPanel(   condition = "input.bio_path == true",
-                  checkboxInput(inputId =   "bio_path_sections",
+                  checkboxInput(     inputId =   "bio_path_sections",
                                       label   = "Biosystems and Pathways")
                 )
 
