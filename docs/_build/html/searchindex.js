@@ -1,0 +1,1 @@
+Search.setIndex({docnames:["index"],envversion:52,filenames:["index.rst"],objects:{},objnames:{},objtypes:{},terms:{"class":0,applic:0,chemic:0,data:0,densiti:0,index:0,modul:0,page:0,search:0,shini:0,view:0},titles:["Welcome to pubchem-heatmap\u2019s documentation!"],titleterms:{document:0,heatmap:0,indic:0,introduct:0,pubchem:0,tabl:0,welcom:0}})
