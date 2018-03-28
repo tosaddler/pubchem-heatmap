@@ -69,7 +69,7 @@ PubChemSections <- function() {
                            `Transport Information` =
                              c("DOT Label",
                                "Emergency Response"),
-                           `Regulatory INformation` =
+                           `Regulatory Information` =
                              c("DOT Emergency Response Guide")),
                     `Toxicity` =
                       list(`Toxicological Information` =

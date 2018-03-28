@@ -126,7 +126,7 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
             subsection.count <- dplyr::select(subsection.temp, -contains(".text"))
             subsection.total <- data.frame(rowSums(subsection.count))
             subsection.text <-  dplyr::select(subsection.temp, contains(".text"))
-            subsection.text <- CollapseTextVector(subsection.text[[1]])
+            subsection.text <- CollapseTextVector(subsection.text[1, ])
             subsection.temp <- data.frame(subsection.total, subsection.text)
             names(subsection.temp) <- c(names(pubchem.sections[[j]])[[k]],
                                         paste0(names(pubchem.sections[[j]])[[k]], ".text"))
