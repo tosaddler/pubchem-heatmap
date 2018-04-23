@@ -1,0 +1,100 @@
+---
+title: "PubChem JSON API"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r knitr, echo=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+```{r install.packages, echo=FALSE, eval=FALSE}
+install.packages("RCurl")
+install.packages("rjson")
+install.packages("rvest")
+install.packages("data.table")
+install.packages("tidyverse")
+install.packages("stringr")
+install.packages("devtools")
+```
+
+```{r echo=FALSE, eval=FALSE}
+library(devtools)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+devtools::install_github(repo = "data.tree", username = "gluc")
+```
+
+```{r load.packages, echo=FALSE}
+library(RCurl)
+library(jsonlite)
+library(rvest)
+library(data.tree)
+library(data.table)
+library(stringr)
+library(tidyverse)
+```
+
+```{r source.pubchem.parse, echo=FALSE}
+source("lib/pubchem_parse.R")
+```
+
+# Pubchem PUG URL's
+
+Most, if not all, of the information the service needs to produce its results is encoded into the URL. The general form of the URL has three parts – input, operation, and output – after the common prefix, followed by operation options as URL arguments (after the ‘?’):
+
+`https://pubchem.ncbi.nlm.nih.gov/rest/pug/<input specification>/<operation specification>/[<output specification>][?<operation_options>]`
+
+```{r}
+compound.id <- "2244"
+```
+
+```{r}
+# Import JSON for compound
+compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
+                       compound.id,
+                       "/JSON/?response_type=save$response_basename=CID_",
+                       compound.id)
+
+compound.tree <- compound.url %>%
+                  read_json() %>%
+                  FromListSimple()
+```
+
+```{r compound.tree.prune}
+compound.tree <- compound.tree$Record$Section
+```
+
+# Literature Search
+
+## Springer Nature References
+```{r}
+nature <- getURL("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query=%7b%22select%22:%5b%22pmid%22%5d,%22collection%22:%22springernature%22,%22where%22:%7b%22ands%22:%5b%7b%22cid%22:%222244%22%7d%5d%7d,%22order%22:%5b%22scorefloat,desc%22%5d,%22start%22:1,%22limit%22:10%7d")
+```
+
+```{r}
+pubmed.url <- getURL("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22pmid%22,%22articlepubdate%22,%22articletitle%22,%22articlejourname%22],%22collection%22:%22pubmed%22,%22where%22:{%22ands%22:[{%22cid%22:%222244%22}]},%22order%22:[%22articlepubdate,desc%22],%22start%22:1,%22limit%22:1}")
+```
+
+```{r}
+nature.json <- jsonlite::fromJSON(nature)
+```
+
+```{r}
+pubmed.json <- fromJSON(pubmed.url)
+```
+
+```{r}
+pubmed <- pubmed.json$SDQOutputSet$totalCount
+```
+
+
+# Testing pubchem_parse.R
+
+```{r}
+source(file = "../lib/pubchem_parse.R")
+pubchemparse.test <- PubChemParse(c("6618", "2244", "22286931"), NULL, db.bypass = TRUE)
+```
+
