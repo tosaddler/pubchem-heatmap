@@ -1,0 +1,12 @@
+name: pubchem-heatmap
+title: pubchem-heatmap
+username:
+account: tosaddler
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 316443
+bundleId: 1313607
+url: https://tosaddler.shinyapps.io/pubchem-heatmap/
+when: 1523451792.08433
+asMultiple: FALSE
+asStatic: FALSE
