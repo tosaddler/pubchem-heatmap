@@ -6,6 +6,8 @@ require(clusterSim)
 require(data.table)
 require(RPostgreSQL)
 require(data.table)
+require(RCurl)
+
 source("lib/pubchem_sections.R")
 
 options(stringsAsFactors = FALSE)
@@ -144,32 +146,32 @@ PubChemParse <- function(chem.ids, db, db.bypass = FALSE) {
         compound.temp <- data.frame(compound.temp, section.total, section.temp, check.names = FALSE)
       }
 
-
-
       # Literature Sections
-      pubmed.citations <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D")))
-      metabolite.ref <-      nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22cid%22,%22pmid%22,%22reference%22%5D,%22collection%22:%22hmdb%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
-      nature.ref <-          nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22articletitle%22,%22articlejourname%22,%22articlepubdate%22,%22pmid%22,%22url%22,%22openaccess%22%5D,%22collection%22:%22springernature%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22scorefloat,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
+      pubmed.citations <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22pmid%22,%22articlepubdate%22,%22articletitle%22,%22articlejourname%22],%22collection%22:%22pubmed%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem.ids[[i]], "%22}]},%22order%22:[%22articlepubdate,desc%22],%22start%22:1,%22limit%22:1}")))
+      pubmed.citations <- pubmed.citations$SDQOutputSet$totalCount
+
+      nature.ref <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query=%7b%22select%22:%5b%22pmid%22%5d,%22collection%22:%22springernature%22,%22where%22:%7b%22ands%22:%5b%7b%22cid%22:%22", chem.ids[[i]], "%22%7d%5d%7d,%22order%22:%5b%22scorefloat,desc%22%5d,%22start%22:1,%22limit%22:10%7d")))
+      nature.ref <- nature.ref$SDQOutputSet$totalCount
+
+      metabolite.ref <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22articletitle%22,%22articlejourname%22,%22articlepubdate%22,%22pmid%22,%22url%22,%22openaccess%22],%22collection%22:%22springernature%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem.ids[[i]], "%22}]},%22order%22:[%22scorefloat,desc%22],%22start%22:1,%22limit%22:5}")))
+      metabolite.ref <- metabolite.ref$SDQOutputSet$totalCount
 
       lit.total <- sum(pubmed.citations, metabolite.ref, nature.ref)
 
-      literature <- data.frame(`Literature` = lit.total,
-                               `PubMed Citations` = pubmed.citations,
-                               `Metabolite References` = metabolite.ref,
-                               `Springer Nature References` = nature.ref)
-
-      compound.temp <- bind_cols(compound.temp, literature)
-
-      # patent.identifiers <-  nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22patentid%22%5D,%22collection%22:%22patent%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22patentsubmdate%22,%22patentgrantdate%22%5D%7D%5D")))
+      compound.temp <- data.frame(compound.temp,
+                                  `Literature` = lit.total,
+                                  `PubMed Citations` = pubmed.citations,
+                                  `Metabolite References` = metabolite.ref,
+                                  `Springer Nature References` = nature.ref,
+                                  check.names = FALSE)
 
       # Biomolecular Pathways
-      biosystems.pathways <- nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]],"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D")))
-      bio.path <- data.frame(`Biomolecular Interactions and Pathways` = biosystems.pathways,
-                             `Biosystems and Pathways` = biosystems.pathways)
-
-      compound.temp <- bind_cols(compound.temp, bio.path)
-      #
-      # bioassay.results <-    nrow(fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", chem.ids[[i]], "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D")))
+      biosystems.pathways <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22bsid%22,%22bsname%22],%22collection%22:%22biosystem%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem.ids[[i]], "%22}]},%22order%22:[%22relevancescore,desc%22],%22start%22:1,%22limit%22:5}")))
+      biosystems.pathways <- biosystems.pathways$SDQOutputSet$totalCount
+      compound.temp <- data.frame(compound.temp,
+                                  `Biomolecular Interactions and Pathways` = biosystems.pathways,
+                                  `Biosystems and Pathways` = biosystems.pathways,
+                                  check.names = FALSE)
 
       # TODO Insert function to write completed table to database
       if (db.bypass == FALSE) {

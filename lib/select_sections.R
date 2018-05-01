@@ -2,7 +2,7 @@ SelectSections <- function(df,
                            pharm_bio,
                            pharm_bio_sections,
                            use_manufacturing,
-                           use_manufacturing_sections,
+                           use_man_sections,
                            identification,
                            identification_sections,
                            safety,
@@ -27,21 +27,21 @@ SelectSections <- function(df,
   }
 
   if (use_manufacturing == TRUE) {
-    if (length(use_manufacturing_sections) > 0) {
-      temp.df <- dplyr::select(df, one_of(use_manufacturing_sections))
+    if (length(use_man_sections) > 0) {
+      temp.df <- dplyr::select(df, one_of(use_man_sections))
       temp <- bind_cols(temp, temp.df)
     } else {
-      temp.df <- dplyr::select(df, matches("Use and Manufacturing"))
+      temp.df <- dplyr::select(df, `Use and Manufacturing`)
       temp <- bind_cols(temp, temp.df)
     }
   }
 
   if (identification == TRUE) {
-    if (length(pharm_bio_sections) > 0) {
+    if (length(identification_sections) > 0) {
       temp.df <- dplyr::select(df, one_of(identification_sections))
       temp <- bind_cols(temp, temp.df)
     } else {
-      temp.df <- dplyr::select(df, matches("Identification"))
+      temp.df <- dplyr::select(df, `Identification`)
       temp <- bind_cols(temp, temp.df)
     }
   }
@@ -51,7 +51,7 @@ SelectSections <- function(df,
       temp.df <- dplyr::select(df, one_of(safety_sections))
       temp <- bind_cols(temp, temp.df)
     } else {
-      temp.df <- dplyr::select(df, matches("Safety and Hazards"))
+      temp.df <- dplyr::select(df, `Safety and Hazards`)
       temp <- bind_cols(temp, temp.df)
     }
   }
@@ -61,7 +61,7 @@ SelectSections <- function(df,
       temp.df <- dplyr::select(df, one_of(toxicity_sections))
       temp <- bind_cols(temp, temp.df)
     } else {
-      temp.df <- dplyr::select(df, matches("Toxicity"))
+      temp.df <- dplyr::select(df, `Toxicity`)
       temp <- bind_cols(temp, temp.df)
     }
   }
@@ -71,7 +71,7 @@ SelectSections <- function(df,
       temp.df <- dplyr::select(df, one_of(literature_sections))
       temp <- bind_cols(temp, temp.df)
     } else {
-      temp.df <- dplyr::select(df, matches("Literature"))
+      temp.df <- dplyr::select(df, `Literature`)
       temp <- bind_cols(temp, temp.df)
     }
   }
@@ -81,7 +81,7 @@ SelectSections <- function(df,
       temp.df <- dplyr::select(df, one_of(bio_path_sections))
       temp <- bind_cols(temp, temp.df)
     } else {
-      temp.df <- dplyr::select(df, matches("Biomolecular Interactions and Pathways"))
+      temp.df <- dplyr::select(df, `Biomolecular Interactions and Pathways`)
       temp <- bind_cols(temp, temp.df)
     }
   }

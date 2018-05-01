@@ -26,7 +26,7 @@ shinyServer(function(input, output) {
                            input$pharm_bio,
                            input$pharm_bio_sections,
                            input$use_manufacturing,
-                           input$use_manufacturing_sections,
+                           input$use_man_sections,
                            input$identification,
                            input$identification_sections,
                            input$safety,
