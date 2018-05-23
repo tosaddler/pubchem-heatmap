@@ -123,7 +123,7 @@ shinyUI(
 
                  checkboxInput(      inputId  =   "bypass",
                                      label    =   "Bypass database",
-                                     value    =   TRUE),
+                                     value    =   FALSE),
 
                  checkboxInput(      inputId  =   "chem.names",
                                      label    =   "Use compound names",
@@ -134,7 +134,10 @@ shinyUI(
           ),
 
           mainPanel(
-            plotlyOutput("heatmap")
+            plotlyOutput("heatmap"),
+            verbatimTextOutput("click"),
+            verbatimTextOutput("clickValue"),
+            verbatimTextOutput("zoom")
           )
         )
       )

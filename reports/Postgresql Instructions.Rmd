@@ -4,45 +4,123 @@ output: html_notebook
 editor_options: 
   chunk_output_type: console
 ---
+```{r setup}
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
 
-```{r}
+```{r libraries}
 library(RPostgreSQL)
+library(config)
 ```
 
-```{r connect_postgres}
-pg = dbDriver("PostgreSQL")
-
-db <- dbConnect(pg, dbname = "postgres",
-                 host = "localhost", port = 5432,
-                 user = "postgres", password = "l1onsandt1gersandbears")
+```{r import_scripts}
+source("lib/pubchem_parse.R")
+source("global.R")
 ```
 
-```{r create_pubchem_text}
-if (!dbExistsTable(db, "pubchem_raw_counts")) {
-    dbSendQuery(db, "CREATE TABLE pubchem_raw_counts(
-                        chem_id INT PRIMARY KEY  NOT NULL)")
-}
+```{r}
+cf <- config::get("dbconnection")
 ```
 
-```{r create_pubchem_raw_counts}
-if (!dbExistsTable(db, "pubchem_text")) {
-    dbSendQuery(db, "CREATE TABLE pubchem_text(
-                        CHEM_ID INT PRIMARY KEY  NOT NULL)")
+
+```{r}
+db <- dbConnect(drv = "PostgreSQL",
+                dbname   = cf$database,
+                host     = cf$server,
+                port     = cf$port,
+                user     = cf$uid,
+                password = cf$pwd)
+```
+
+
+# Create Tables
+
+```{r create_pubchem_counts}
+if (!dbExistsTable(db, "pubchem_counts")) {
+    dbSendQuery(db, "CREATE TABLE pubchem_counts (
+                      compound_id INT PRIMARY KEY,
+                      name_info TEXT,
+                      cactvs_info TEXT,
+                      pharmacology_and_biochemistry INT,
+                      pharmacology INT,
+                      absoprption_distribution_excretion INT,
+                      metabolism_metabolites INT,
+                      biological_half_life INT,
+                      mechanism_of_action INT,
+                      use_and_manufacturing INT,
+                      methods_of_manufacturing INT,
+                      consumption INT,
+                      identification INT,
+                      analytic_lab_methods INT,
+                      clinical_lab_methods INT,
+                      safety_hazards INT,
+                      hazards_identification INT,
+                      safety_hazards_prop INT,
+                      first_aid_measures INT,
+                      fire_fighting_measures INT,
+                      accidental_release_measures INT,
+                      handling_storage INT,
+                      exposure_control_and_pp INT,
+                      stability_reactivity INT,
+                      transport_info INT,
+                      regulatory_info INT,
+                      toxicity INT,
+                      tox_info INT,
+                      eco_info INT,
+                      literature INT,
+                      pubmed_citations INT,
+                      metabolite_references INT,
+                      nature_references INT,
+                      bio_interactions_pathways INT,
+                      biosystems_pathways INT);")
 }
 ```
 
 ```{r}
-RPostgreSQL::
+if (!dbExistsTable(db, "pubchem_text")) {
+  dbSendQuery(db, "CREATE TABLE pubchem_text (
+                    compound_id INT REFERENCES pubchem_counts(compound_id),
+                    pharmacology_text TEXT,
+                    absorption_distribution_excretion_text TEXT,
+                    metabolism_metabolites_text TEXT,
+                    biological_half_life_text TEXT,
+                    mechanism_of_action_text TEXT,
+                    methods_of_manufacturing_text TEXT,
+                    consumption_text TEXT,
+                    analytic_lab_methods_text TEXT,
+                    clinical_lab_methods_text TEXT,
+                    hazards_identification_text TEXT,
+                    safety_hazards_prop_text TEXT,
+                    first_aid_measures_text TEXT,
+                    fire_fighting_measures_text TEXT,
+                    accidental_release_measures_text TEXT,
+                    handling_storage_text TEXT,
+                    exposure_control_and_pp_text TEXT,
+                    stability_reactivity_text TEXT,
+                    transport_info_text TEXT,
+                    regulatory_info_text TEXT,
+                    tox_info_text TEXT,
+                    eco_info_text TEXT);")
+}
 ```
 
 
 ```{r list_pubchem_raw_counts_fields}
-table_fields <- dbListFields(db, "pubchem_raw_counts")
-table_fields
-
+table_fields <- dbListFields(db, "pubchem_counts")
 ```
 
-```{r remove_pubchem_raw_counts}
-dbRemoveTable(db, "pubchem_raw_counts")
+# Removing Tables
+```{r remove_tables}
+dbRemoveTable(db, "pubchem_counts")
+dbRemoveTable(db, "pubchem_text")
 ```
 
+```{r}
+db.test <- as.logical(dbGetQuery(db, paste("SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id =", 6618, ');')))
+```
+
+
+# Testing DB field renaming
+```{r}
+df <- PubChemParse(c("6618", "2244", "120228"), db.bypass = FALSE)
+```

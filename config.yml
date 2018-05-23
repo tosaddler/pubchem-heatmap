@@ -1,0 +1,17 @@
+default:
+  dbconnection:
+    driver: 'PostgreSQL'
+    server: 'shinytreehouse.com'
+    uid: 'postgres'
+    pwd: 'holland-decide-mothers-shanghai'
+    port: 5432
+    database: 'postgres'
+    
+shinyapps:
+  dbconnection:
+    driver: 'PostgreSQL'
+    server: 'shinytreehouse.com'
+    uid: 'postgres'
+    pwd: 'holland-decide-mothers-shanghai'
+    port: 5432
+    database: 'postgres'

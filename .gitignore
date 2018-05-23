@@ -6,3 +6,7 @@ packrat/lib-R
 packrat/lib
 packrat/src
 Rplot001.jpg
+packrat/lib*/
+packrat/src/
+pubchem-heatmap.sublime*
+rsconnect/
