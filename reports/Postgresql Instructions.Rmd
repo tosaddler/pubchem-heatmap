@@ -15,7 +15,6 @@ library(config)
 
 ```{r import_scripts}
 source("lib/pubchem_parse.R")
-source("global.R")
 ```
 
 ```{r}

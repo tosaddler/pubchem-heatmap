@@ -1,6 +1,8 @@
 ---
 title: "Wordcloud Exploration"
 output: html_notebook
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -13,7 +15,6 @@ knitr::opts_knit$set(root.dir = normalizePath(".."))
 Referenced from http://www.sthda.com/english/wiki/text-mining-and-word-cloud-fundamentals-in-r-5-simple-steps-you-should-know
 
 ```{r}
-library(rjson)
 library(tidyverse)
 library(jsonlite)
 library(stringr)
@@ -22,18 +23,43 @@ library(SnowballC)
 library(wordcloud)
 library(clusterSim)
 library(webchem)
+library(RPostgreSQL)
+library(config)
 ```
 
-Use pubchem.parse here to import data.
-
-```{r url-cleanup}
-for (i in 1:length(temp)) {
-    temp[i] <- str_replace_all(temp[i], "\\<.*\\>", "")
-}
+```{r import_scripts}
+source("lib/pubchem_parse.R", local = TRUE)
 ```
 
 ```{r}
-temp <- paste(temp, sep = "", collapse = "")
+cf <- config::get("dbconnection")
+```
+
+```{r}
+db <- dbConnect(drv = "PostgreSQL",
+                dbname   = cf$database,
+                host     = cf$server,
+                port     = cf$port,
+                user     = cf$uid,
+                password = cf$pwd)
+```
+
+```{r}
+if (as.logical(dbGetQuery(db, paste("SELECT EXISTS(SELECT 1 FROM pubchem_text WHERE compound_id =", "6618", ');')))) {
+  text.temp <- dbGetQuery(db, paste('SELECT * FROM pubchem_text',
+                                  'WHERE compound_id = ', "6618", ';'))
+  text.temp <- DBToDFRaw(text.temp)
+} else {
+  compound.temp <- PubChemScrape(chem.ids[[i]], db, db.bypass)
+  text.temp <- dbGetQuery(db, paste('SELECT * FROM pubchem_text',
+                                  'WHERE compound_id = ', "6618", ';'))
+  text.temp <- DBToDFRaw(text.temp)
+}
+```
+
+
+```{r}
+temp <- paste(text.temp, collapse = " ")
 ```
 
 ```{r}
@@ -72,15 +98,8 @@ set.seed(1234)
 wordcloud(words = d$word, freq = d$freq, min.freq = 1, max.words = 200, random.order = FALSE, rot.per = 0.35, colors = brewer.pal(8, "Dark2"))
 ```
 
-## Splitting strings
 
 ```{r}
-strings <- unlist(str_split("6618\n1983", "\n"))
-```
-
-## Webchem testing
-
-```{r}
-cids <- get_cid("39492-91-6")
+dbDisconnect(db)
 ```
 
