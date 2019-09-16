@@ -49,19 +49,22 @@ shinyServer(function(input, output) {
 
   output$heatmap <-
     renderPlotly({
-
       if (input$clustering == TRUE) {
         heatmaply(finalFrame(),
                   dendrogram = "row",
                   RowV = df.dend,
                   row_dend_left = FALSE,
                   # margins = c(200, 200, NA, 0),
-                  colors = Blues)
+                  colors = Blues) %>%
+          layout(height = input$plot_height,
+                 width  = input$plot_width)
       } else {
         heatmaply(finalFrame(),
                   dendrogram = FALSE,
                   # margins = c(200, 200, NA, 0),
-                  colors = Blues)
+                  colors = Blues) %>%
+          layout(height = input$plot_height,
+                 width  = input$plot_width)
       }
 
     })
@@ -84,6 +87,15 @@ shinyServer(function(input, output) {
     d <- event_data("plotly_relayout", "A")
     if (is.null(d)) "Relayout events (i.e., zoom) appear here" else d
   })
+
+  output$download <- downloadHandler(
+    filename = function() {
+      paste0("pubchem_heatmap_table", ".csv")
+    },
+    content = function(file) {
+      write.csv(finalFrame(), file)
+    }
+  )
 
 })
 # colors = cool_warm

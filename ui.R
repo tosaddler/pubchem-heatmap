@@ -127,8 +127,19 @@ shinyUI(
 
                  checkboxInput(      inputId  =   "chem.names",
                                      label    =   "Use compound names",
-                                     value    =   TRUE)
-
+                                     value    =   TRUE),
+                 numericInput(       inputId  =   "plot_width",
+                                     label    =   'Plot Width',
+                                     value    =   500,
+                                     min      =   0,
+                                     max      =   Inf,
+                                     step     =   1),
+                 numericInput(       inputId  =   'plot_height',
+                                     label    =   'Plot Height',
+                                     value    =   500,
+                                     min      =   0,
+                                     step     =   1),
+                 downloadButton("download", "Download CSV Table")
               )
             )
           ),

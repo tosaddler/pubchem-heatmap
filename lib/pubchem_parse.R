@@ -61,8 +61,7 @@ PubChemScrape <- function(chem.id, db, db.bypass = FALSE) {
   # Import JSON for compound
   compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
                          chem.id,
-                         "/JSON/?response_type=save$response_basename=CID_",
-                         chem.id)
+                         "/JSON/?response_type=save")
 
   compound.tree <- compound.url %>%
     read_json() %>%
