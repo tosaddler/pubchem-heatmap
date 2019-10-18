@@ -52,6 +52,9 @@ rsconnect/
 # Config file
 config.yml
 
+# Temporary files
+tmp/
+
 ### R.Bookdown Stack ###
 # R package: bookdown caching files
 /*_files/
