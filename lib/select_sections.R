@@ -14,7 +14,7 @@ SelectSections <- function(df,
                            bio_path,
                            bio_path_sections) {
 
-  temp <- dplyr::select(df, compound.id, name.info, cactvs.info)
+  temp <- dplyr::select(df, compound.id, name.info)
 
   if (pharm_bio == TRUE) {
     if (length(pharm_bio_sections) > 0) {
@@ -95,6 +95,6 @@ FinalizeDF <- function(df, chem.names) {
   } else {
     row.names(df) <- as.vector(df$compound.id)
   }
-  df <- dplyr::select(df, -compound.id, -cactvs.info, -name.info)
+  df <- dplyr::select(df, -compound.id, -name.info)
   return(df)
 }

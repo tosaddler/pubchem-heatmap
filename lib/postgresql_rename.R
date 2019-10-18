@@ -28,7 +28,6 @@ DFRawToDB <- function(df) {
 DFCountsToDB <- function(df) {
   names(df) <- c( `compound.id` = "compound_id",
                   `name.info` = "name_info",
-                  `cactvs.info` = "cactvs_info",
                   `Pharmacology and Biochemistry` = "pharmacology_and_biochemistry",
                   `Pharmacology` = "pharmacology",
                   `Absorption, Distribution and Excretion` = "absoprption_distribution_excretion",
@@ -95,7 +94,6 @@ DBToDFRaw <- function(df) {
 DBToDFCounts <- function(df) {
   names(df) <- c( `compound_id` = "compound.id",
                   `name_info` = "name.info",
-                  `cactvs_info` = "cactvs.info",
                   `pharmacology_and_biochemistry` = "Pharmacology and Biochemistry",
                   `pharmacology` = "Pharmacology",
                   `absoprption_distribution_excretion` = "Absorption, Distribution and Excretion",

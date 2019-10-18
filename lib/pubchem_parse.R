@@ -11,6 +11,7 @@ require(config)
 
 source("lib/pubchem_sections.R", local = TRUE)
 source("lib/postgresql_rename.R", local = TRUE)
+source("lib/postgresql_initialize.R", local = TRUE)
 
 options(stringsAsFactors = FALSE)
 
@@ -23,10 +24,9 @@ CollapseTextVector <- function(vec) {
 ScrapeSection <- function(section.node, subsection.heading) {
   subsection <- tryCatch({
     temp <- Clone(section.node$Climb(TOCHeading = subsection.heading)$Information)
-    temp$Get("StringValue", filterFun = function(x) {x$level == 2})
+    temp$Get("String", filterFun = function(x) {x$level == 5})
   }, error = function(err) {
     print(paste("ScrapeSection: subsection", subsection.heading, "does not exist for compound"))
-    ""
   })
   subsection.text <- CollapseTextVector(subsection)
   subsection <- str_count(subsection.text, "\\S+")
@@ -49,41 +49,38 @@ JoinTempDF <- function(main.df, temp.df) {
   if (length(main.df) == 0) {
     main.df <- temp.df
   } else {
-    main.df <- bind_cols(main.df, temp.df)
+    main.df <- dplyr::bind_cols(main.df, temp.df)
   }
   return(main.df)
 }
 
-PubChemScrape <- function(chem.id, db, db.bypass = FALSE) {
+PubChemURL <- function(chem_id) {
+  chem_url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
+                         chem_id,
+                         "/JSON/?response_type=save")
+}
 
+PubChemJSON <- function(chem_url) {
+  chem_json <- read_json(chem_url)
+}
+
+PubChemTree <- function(chem_json) {
+  chem_tree <- FromListSimple(chem_json)
+}
+
+PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
   pubchem.sections <- PubChemSections()
 
-  # Import JSON for compound
-  compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
-                         chem.id,
-                         "/JSON/?response_type=save")
+  chem.id <- compound.tree$Record$RecordNumber
 
-  compound.tree <- compound.url %>%
-    read_json() %>%
-    FromListSimple()
+  compound.name <- compound.tree$Record$RecordTitle
 
   # Simplifying to the section we need, other section contains references
   compound.tree <- compound.tree$Record$Section
 
-  # Pulling compound name
-  compound.name <- compound.tree$Climb(TOCHeading = "Names and Identifiers")$Section$`1`$Information$`1`$StringValue
-
-  # Pulling CACTVS String for clustering
-  chem.phys.prop <- compound.tree$Climb(TOCHeading = "Chemical and Physical Properties")$Section
-  computed.prop <- chem.phys.prop$Climb(TOCHeading = "Computed Properties")$Information$`1`$Table$Row
-  cactvs <- computed.prop$Get(attribute = "BinaryValue")
-  cactvs <- cactvs[!is.na(cactvs)]
-  names(cactvs) <- "cactvs.info"
-
   # Initialize temporary data frame to pull info from each section
   compound.temp <- data.frame(compound.id = as.numeric(chem.id),
-                              name.info   = compound.name,
-                              cactvs.info = cactvs)
+                              name.info   = compound.name)
 
   for (j in 1:length(pubchem.sections)) {
 
@@ -188,6 +185,9 @@ PubChemParse <- function(chem.ids, db.bypass = FALSE) {
                     port     = cf$port,
                     user     = cf$uid,
                     password = cf$pwd)
+    if(!dbExistsTable(db, "pubchem_counts")) {
+      InitializePostgresTable(db, "pubchem_counts")
+    }
   } else {
     db <- NULL
   }
@@ -202,11 +202,17 @@ PubChemParse <- function(chem.ids, db.bypass = FALSE) {
                                             'WHERE compound_id = ', chem.ids[[i]], ';'))
             compound.temp <- DBToDFCounts(compound.temp)
       } else {
-        compound.temp <- PubChemScrape(chem.ids[[i]], db, db.bypass)
+        compound_url <- PubChemURL(chem.ids[[i]])
+        compound_json <- PubChemJSON(compound_url)
+        compound_tree <- PubChemTree(compound_json)
+        compound.temp <- PubChemScrape(compound_tree, db, db.bypass)
       }
 
     } else {
-      compound.temp <- PubChemScrape(chem.ids[[i]], db, db.bypass)
+      compound_url <- PubChemURL(chem.ids[[i]])
+      compound_json <- PubChemJSON(compound_url)
+      compound_tree <- PubChemTree(compound_json)
+      compound.temp <- PubChemScrape(compound_tree, db, db.bypass)
     }
 
     master <- bind_rows(master, compound.temp)
