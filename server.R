@@ -11,7 +11,29 @@ shinyServer(function(input, output) {
 
   CompoundsParse <- eventReactive(input$update, {
     compounds <- unlist(str_split(input$chemid, "\n"))
-    df <- PubChemParse(chem.ids = compounds, db.bypass = input$bypass)
+
+    # Create a Progress object
+    progress <- shiny::Progress$new()
+    progress$set(message = "Parsing compounds\n", value = 0)
+    #Close the progress when this reactive exits (even if there is an error)
+    on.exit(progress$close())
+
+    # Create a callback function to update progress.
+    # Each time this is called:
+    # - If `value` is NULL, it will move the progress bar 1/5 of the remaining
+    #   distance. If non-NULL, it will set the progress to that value.
+    # - It also accepts optional detail text.
+    updateProgress <- function(value = NULL, detail = NULL) {
+      if (is.null(value)) {
+        value <- progress$getValue()
+        value <- value + (progress$getMax() - value) / 5
+      }
+      progress$set(value = value, detail = detail)
+    }
+
+    df <- PubChemParse(chem.ids = compounds,
+                       db.bypass = input$bypass,
+                       updateProgress = updateProgress)
     return(df)
   })
 
@@ -47,27 +69,27 @@ shinyServer(function(input, output) {
     }
   })
 
-  output$heatmap <-
-    renderPlotly({
-      if (input$clustering == TRUE) {
-        heatmaply(finalFrame(),
-                  dendrogram = "row",
-                  RowV = df.dend,
-                  row_dend_left = FALSE,
-                  # margins = c(200, 200, NA, 0),
-                  colors = Blues) %>%
-          layout(height = input$plot_height,
-                 width  = input$plot_width)
-      } else {
-        heatmaply(finalFrame(),
-                  dendrogram = FALSE,
-                  # margins = c(200, 200, NA, 0),
-                  colors = Blues) %>%
-          layout(height = input$plot_height,
-                 width  = input$plot_width)
-      }
+  observeEvent(input$dimension, {
+    output$heatmap <-
+      renderPlotly({
+        if (input$clustering == TRUE) {
+          heatmaply(finalFrame(),
+                    dendrogram = "row",
+                    RowV = df.dend,
+                    row_dend_left = FALSE,
+                    # margins = c(200, 200, NA, 0),
+                    colors = Blues) %>%
+            layout(height = "100%")
+        } else {
+          heatmaply(finalFrame(),
+                    dendrogram = FALSE,
+                    # margins = c(200, 200, NA, 0),
+                    colors = Blues) %>%
+            layout(height = 0.9 * as.numeric(input$dimension[2]))
+        }
 
-    })
+      })
+  })
 
   output$click <- renderPrint({
     d <- event_data("plotly_click", "A")
@@ -98,4 +120,3 @@ shinyServer(function(input, output) {
   )
 
 })
-# colors = cool_warm

@@ -176,7 +176,7 @@ PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
   return(compound.temp)
 }
 
-PubChemParse <- function(chem.ids, db.bypass = FALSE) {
+PubChemParse <- function(chem.ids, db.bypass = FALSE, updateProgress = NULL) {
   if (!db.bypass) {
     cf <- config::get("dbconnection")
     db <- dbConnect(drv      = dbDriver(cf$driver),
@@ -195,6 +195,10 @@ PubChemParse <- function(chem.ids, db.bypass = FALSE) {
   master <- data.frame()
 
   for (i in 1:length(chem.ids)) {
+    if (is.function(updateProgress)) {
+      updateProgress(value = (i / length(chem.ids)),
+                     detail = paste("Compound", i, "of", length(chem.ids)))
+    }
 
     if (!db.bypass) {
       if (as.logical(dbGetQuery(db, paste("SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id =", chem.ids[[i]], ');')))) {
@@ -214,7 +218,6 @@ PubChemParse <- function(chem.ids, db.bypass = FALSE) {
       compound_tree <- PubChemTree(compound_json)
       compound.temp <- PubChemScrape(compound_tree, db, db.bypass)
     }
-
     master <- bind_rows(master, compound.temp)
   }
 
