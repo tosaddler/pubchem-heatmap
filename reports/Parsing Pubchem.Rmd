@@ -51,3 +51,49 @@ chem_tree <- PubChemTree(chem_json)
 ```{r}
 pubchem_parse_test <- PubChemScrape(chem_tree, NULL, TRUE)
 ```
+
+```{r}
+pubmed.citations <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pubmed","where":{"ands":[{"cid":"', chem_id, '"},{"pmidsrcs":"xref"}]},"order":["articlepubdate,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
+pubmed.citations <- pubmed.citations$SDQOutputSet$totalCount
+```
+
+```{r}
+nature.ref <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"springernature","where":{"ands":[{"cid":"', chem_id, '"}]},"order":["scorefloat,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
+nature.ref <- nature.ref$SDQOutputSet$totalCount
+```
+  
+```{r}
+metabolite.ref <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22articletitle%22,%22articlejourname%22,%22articlepubdate%22,%22pmid%22,%22url%22,%22openaccess%22],%22collection%22:%22springernature%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem_id,` "%22}]},%22order%22:[%22scorefloat,desc%22],%22start%22:1,%22limit%22:5}")))f
+metabolite.ref <- metabolite.ref$SDQOutputSet$totalCount
+```
+
+
+```{r}
+metabolite.ref <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"hmdb","where":{"ands":[{"cid":"', chem_id,'"}]},"order":["relevancescore,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
+metabolite.ref <- metabolite.ref$SDQOutputSet$totalCount
+```
+
+```{r}
+sdq_/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"hmdb","where":{"ands":[{"cid":"1983"}]},"order":["relevancescore,desc"],"start":1,"limit":5,"width":1000000,"listids":0}
+```
+
+```{r}
+'https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"bioactivity","where":{"ands":[{"cid":', chem.id, '}]},"order":["acvalue,asc"],"start":1,"limit":1,"nullatbottom":1,"width":1000000,"listids":0}'
+```
+
+```{r}
+  biosystems.pathways <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pathway","where":{"ands":[{"cid":"', chem_id, '"},{"core":"1"}]},"order":["source,asc"],"start":1,"limit":1}')))
+```
+
+https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pathway","where":{"ands":[{"cid":"1983"}]},"order":["relevancescore,asc"],"start":1,"limit":100,"nullatbottom":0,"width":1000000,"listids":0}
+
+https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pathway","where":{"ands":[{"cid":"1983"},{"core":"1"}]},"order":["source,asc"],"start":1,"limit":1}
+
+```{r}
+
+```
+
+Should add article research timeframe comparison using the research data table From Nature.
+This way you can see if there was a large spike of research for a compound or a class of compounds.
+
+

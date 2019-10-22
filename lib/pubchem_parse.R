@@ -27,6 +27,7 @@ ScrapeSection <- function(section.node, subsection.heading) {
     temp$Get("String", filterFun = function(x) {x$level == 5})
   }, error = function(err) {
     print(paste("ScrapeSection: subsection", subsection.heading, "does not exist for compound"))
+    return("")
   })
   subsection.text <- CollapseTextVector(subsection)
   subsection <- str_count(subsection.text, "\\S+")
@@ -123,13 +124,13 @@ PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
   }
 
   # Literature Sections
-  pubmed.citations <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22pmid%22,%22articlepubdate%22,%22articletitle%22,%22articlejourname%22],%22collection%22:%22pubmed%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem.id, "%22}]},%22order%22:[%22articlepubdate,desc%22],%22start%22:1,%22limit%22:1}")))
+  pubmed.citations <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pubmed","where":{"ands":[{"cid":"', chem.id, '"},{"pmidsrcs":"xref"}]},"order":["articlepubdate,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
   pubmed.citations <- pubmed.citations$SDQOutputSet$totalCount
 
-  nature.ref <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query=%7b%22select%22:%5b%22pmid%22%5d,%22collection%22:%22springernature%22,%22where%22:%7b%22ands%22:%5b%7b%22cid%22:%22", chem.id, "%22%7d%5d%7d,%22order%22:%5b%22scorefloat,desc%22%5d,%22start%22:1,%22limit%22:10%7d")))
+  nature.ref <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"springernature","where":{"ands":[{"cid":"', chem.id, '"}]},"order":["scorefloat,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
   nature.ref <- nature.ref$SDQOutputSet$totalCount
 
-  metabolite.ref <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22articletitle%22,%22articlejourname%22,%22articlepubdate%22,%22pmid%22,%22url%22,%22openaccess%22],%22collection%22:%22springernature%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem.id, "%22}]},%22order%22:[%22scorefloat,desc%22],%22start%22:1,%22limit%22:5}")))
+  metabolite.ref <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"hmdb","where":{"ands":[{"cid":"', chem.id,'"}]},"order":["relevancescore,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
   metabolite.ref <- metabolite.ref$SDQOutputSet$totalCount
 
   lit.total <- sum(pubmed.citations, metabolite.ref, nature.ref)
@@ -142,7 +143,7 @@ PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
                               check.names = FALSE)
 
   # Biomolecular Pathways
-  biosystems.pathways <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22bsid%22,%22bsname%22],%22collection%22:%22biosystem%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem.id, "%22}]},%22order%22:[%22relevancescore,desc%22],%22start%22:1,%22limit%22:5}")))
+  biosystems.pathways <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pathway","where":{"ands":[{"cid":"', chem.id, '"},{"core":"1"}]},"order":["source,asc"],"start":1,"limit":1}')))
   biosystems.pathways <- biosystems.pathways$SDQOutputSet$totalCount
   compound.temp <- data.frame(compound.temp,
                               `Biomolecular Interactions and Pathways` = biosystems.pathways,
