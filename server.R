@@ -63,7 +63,7 @@ shinyServer(function(input, output) {
     df <- FinalizeDF(df, input$chem.names)
 
     if (input$normalization == "Only this data") {
-      return(df <- data.Normalization(df, type = "n8"))
+      return(data.Normalization(df, type = "n8"))
     } else { # Database average normalization will go here
       return(df)
     }

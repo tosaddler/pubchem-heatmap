@@ -1,0 +1,62 @@
+---
+title: "Simplifying PubChem JSON"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r knitr, echo=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+```{r install.packages, echo=FALSE, eval=FALSE}
+install.packages("RCurl")
+install.packages("rjson")
+install.packages("rvest")
+install.packages("data.table")
+install.packages("tidyverse")
+install.packages("stringr")
+install.packages("devtools")
+```
+
+```{r}
+library(devtools)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+devtools::install_github(repo = "data.tree", username = "gluc")
+```
+
+```{r load.packages, echo=FALSE}
+library(RCurl)
+library(jsonlite)
+library(rvest)
+library(data.tree)
+library(data.table)
+library(stringr)
+library(tidyverse)
+```
+
+```{r source.pubchem.parse}
+source("lib/pubchem_parse.R")
+source("lib/simplify_json.R")
+```
+
+```{r}
+chem_id <- "1983"
+chem_url <- PubChemURL(chem_id)
+chem_json <- PubChemJSON(chem_url)
+```
+
+```{r}
+chem_tree <- PubChemTree(chem_json)
+```
+
+```{r}
+chem_json_simple <- chem_json$Record$Section
+```
+
+```{r}
+chem_json_toc <- UseTOCHeading(chem_json_simple)
+```
+

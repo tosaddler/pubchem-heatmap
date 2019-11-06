@@ -1,5 +1,4 @@
-# Created by https://www.gitignore.io/api/r
-# Edit at https://www.gitignore.io/?templates=r
+.git/
 
 ### R ###
 # History files
@@ -41,15 +40,13 @@ vignettes/*.pdf
 
 # Packrat
 packrat/lib*/
+packrat/src/
 
 # Rendered images
 *.jpg
 
 # Rstudio Connect
 rsconnect/
-
-# Config file
-config.yml
 
 # Temporary files
 tmp/
@@ -59,4 +56,6 @@ tmp/
 /*_files/
 
 # End of https://www.gitignore.io/api/r
-packrat/src/
+
+plots/
+reports/
