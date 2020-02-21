@@ -4,7 +4,7 @@ require(stringr)
 require(data.tree)
 require(clusterSim)
 require(data.table)
-require(RPostgreSQL)
+require(RPostgres)
 require(data.table)
 require(RCurl)
 require(config)
@@ -180,7 +180,7 @@ PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
 PubChemParse <- function(chem.ids, db.bypass = FALSE, updateProgress = NULL) {
   if (!db.bypass) {
     cf <- config::get("dbconnection")
-    db <- dbConnect(drv      = dbDriver(cf$driver),
+    tryCatch({db <- dbConnect(drv = dbDriver(cf$driver),
                     dbname   = cf$database,
                     host     = cf$server,
                     port     = cf$port,
@@ -188,11 +188,16 @@ PubChemParse <- function(chem.ids, db.bypass = FALSE, updateProgress = NULL) {
                     password = cf$pwd)
     if(!dbExistsTable(db, "pubchem_counts")) {
       InitializePostgresTable(db, "pubchem_counts")
-    }
+    }},
+    error = function(err) {
+      db <<- NULL
+      db.bypass <<- TRUE
+      print(paste("db.bypass is", as.character(db.bypass)))
+    })
   } else {
     db <- NULL
   }
-
+  print(paste("db.bypass is", as.character(db.bypass)))
   master <- data.frame()
 
   for (i in 1:length(chem.ids)) {

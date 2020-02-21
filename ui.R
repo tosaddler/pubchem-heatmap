@@ -135,7 +135,7 @@ shinyUI(
 
                checkboxInput(      inputId  =   "bypass",
                                    label    =   "Bypass database",
-                                   value    =   FALSE),
+                                   value    =   TRUE),
 
                checkboxInput(      inputId  =   "chem.names",
                                    label    =   "Use compound names",
