@@ -16,7 +16,7 @@ shinyUI(
                           Shiny.onInputChange("dimension", dimension);
                           });
                           $(window).resize(function(e) {
-                          dimension[0] = window.innerWidth;
+                            dimension[0] = window.innerWidth;
                           dimension[1] = window.innerHeight;
                           Shiny.onInputChange("dimension", dimension);
                           });
@@ -135,7 +135,7 @@ shinyUI(
 
                checkboxInput(      inputId  =   "bypass",
                                    label    =   "Bypass database",
-                                   value    =   TRUE),
+                                   value    =   FALSE),
 
                checkboxInput(      inputId  =   "chem.names",
                                    label    =   "Use compound names",

@@ -1,0 +1,15 @@
+---
+title: "ChemmineR"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r knitr, echo=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+```{r}
+library(ChemmineR)
+```
+

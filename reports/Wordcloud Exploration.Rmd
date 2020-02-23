@@ -23,7 +23,6 @@ library(SnowballC)
 library(wordcloud)
 library(clusterSim)
 library(webchem)
-library(RPostgreSQL)
 library(config)
 ```
 

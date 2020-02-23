@@ -35,7 +35,7 @@ RUN install2.r -d TRUE -e -s \
     data.tree \
     jsonlite \
     RCurl \
-    RPostgreSQL \
+    RPostgres \
     shinyHeatmaply \
     stringr \
     tidyverse

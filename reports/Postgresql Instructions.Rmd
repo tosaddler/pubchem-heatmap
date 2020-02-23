@@ -9,7 +9,6 @@ knitr::opts_knit$set(root.dir = normalizePath(".."))
 ```
 
 ```{r libraries}
-library(RPostgreSQL)
 library(config)
 ```
 
@@ -21,16 +20,15 @@ source("lib/pubchem_parse.R")
 cf <- config::get("dbconnection")
 ```
 
-
 ```{r}
-db <- dbConnect(drv = "PostgreSQL",
-                dbname   = cf$database,
-                host     = cf$server,
-                port     = cf$port,
-                user     = cf$uid,
-                password = cf$pwd)
+db <- DBI::dbConnect(odbc::odbc(),
+                      Driver   = "PostgreSQL Driver",
+                      Server   = "127.0.0.1",
+                      Database = "postgres",
+                      UID      = "pubchem",
+                      PWD      = "pubchem-heatmap",
+                      Port     = 5432)
 ```
-
 
 # Create Tables
 
@@ -115,7 +113,15 @@ dbRemoveTable(db, "pubchem_text")
 ```
 
 ```{r}
-db.test <- as.logical(dbGetQuery(db, paste("SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id =", 6618, ');')))
+db.test <- as.logical(dbGetQuery(db, paste("SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id =", 6618, ');')))r
+```
+
+```{r}
+compound_exists <- dbSendQuery(db, "SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id = ?);")
+dbBind(compound_exists, list("6618"))
+cpe <- dbFetch(compound_exists)
+
+dbClearResult(compound_exists)
 ```
 
 

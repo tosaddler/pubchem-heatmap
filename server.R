@@ -1,6 +1,7 @@
 require(shiny)
 require(shinyHeatmaply)
 require(clusterSim)
+library(pool)
 
 source("lib/pubchem_parse.R")
 source("lib/clustering.R")

@@ -2,12 +2,13 @@ require(tidyverse)
 require(jsonlite)
 require(stringr)
 require(data.tree)
+library(dbplyr)
 require(clusterSim)
 require(data.table)
 require(RPostgres)
-require(data.table)
 require(RCurl)
 require(config)
+library(pool)
 
 source("lib/pubchem_sections.R", local = TRUE)
 source("lib/postgresql_rename.R", local = TRUE)
@@ -180,12 +181,16 @@ PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
 PubChemParse <- function(chem.ids, db.bypass = FALSE, updateProgress = NULL) {
   if (!db.bypass) {
     cf <- config::get("dbconnection")
-    tryCatch({db <- dbConnect(drv = dbDriver(cf$driver),
-                    dbname   = cf$database,
-                    host     = cf$server,
-                    port     = cf$port,
-                    user     = cf$uid,
-                    password = cf$pwd)
+    tryCatch({
+      db <- DBI::dbConnect(odbc::odbc(),
+                           Driver   = cf$driver,
+                           Server   = cf$host,
+                           Database = cf$database,
+                           UID      = cf$uid,
+                           PWD      = cf$pwd,
+                           Port     = cf$port)
+      compound_exists <- dbSendQuery(db, "SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id = ?);")
+      fetch_compound <- dbSendQuery(db, "SELECT * FROM pubchem_counts WHERE compound_id = ?;")
     if(!dbExistsTable(db, "pubchem_counts")) {
       InitializePostgresTable(db, "pubchem_counts")
     }},
@@ -207,10 +212,14 @@ PubChemParse <- function(chem.ids, db.bypass = FALSE, updateProgress = NULL) {
     }
 
     if (!db.bypass) {
-      if (as.logical(dbGetQuery(db, paste("SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id =", chem.ids[[i]], ');')))) {
-            compound.temp <- dbGetQuery(db, paste('SELECT * FROM pubchem_counts',
-                                            'WHERE compound_id = ', chem.ids[[i]], ';'))
-            compound.temp <- DBToDFCounts(compound.temp)
+      dbBind(compound_exists, list(chem.ids[[1]]))
+      cpe <- dbFetch(compound_exists)
+      dbClearResult(compound_exists)
+      if (as.logical(as.numeric(cpe[[1]]))) {
+        dbBind(fetch_compound, list(chem.ids[[1]]))
+        compound.temp <- dbFetch(fetch_compound)
+        dbClearResult(fetch_compound)
+        compound.temp <- DBToDFCounts(compound.temp)
       } else {
         compound_url <- PubChemURL(chem.ids[[i]])
         compound_json <- PubChemJSON(compound_url)
