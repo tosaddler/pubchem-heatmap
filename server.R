@@ -1,4 +1,5 @@
 require(shiny)
+require(shinyHeatmaply)
 require(clusterSim)
 library(pool)
 
@@ -60,7 +61,7 @@ shinyServer(function(input, output) {
                          input$bio_path,
                          input$bio_path_sections)
 
-    df <- FinalizeDF(df, input$chem.names)
+    df <- FinalizeDF(df, input$chem.names, input$chem.names.length)
 
     if (input$normalization == "Only this data") {
       return(data.Normalization(df, type = "n8"))

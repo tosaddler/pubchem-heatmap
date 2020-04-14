@@ -89,9 +89,9 @@ SelectSections <- function(df,
   return(temp)
 }
 
-FinalizeDF <- function(df, chem.names) {
+FinalizeDF <- function(df, chem.names, chem.name.length) {
   if (chem.names == TRUE) {
-    row.names(df) <- as.vector(df$name.info)
+    row.names(df) <- str_trunc(as.vector(df$name.info), chem.name.length)
   } else {
     row.names(df) <- as.vector(df$compound.id)
   }
