@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyHeatmaply)
 
 shinyUI(
   navbarPage("pubchem-heatmap",
@@ -136,6 +137,13 @@ shinyUI(
                checkboxInput(      inputId  =   "chem.names",
                                    label    =   "Use compound names",
                                    value    =   TRUE),
+
+               numericInput(       inputId = "chem.names.length",
+                                   label = "Compound name length",
+                                   value = 30,
+                                   min = 1,
+                                   max = 200),
+
                numericInput(       inputId  =   "plot_width",
                                    label    =   'Plot Width',
                                    value    =   500,
