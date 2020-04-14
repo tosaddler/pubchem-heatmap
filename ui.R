@@ -1,8 +1,4 @@
 library(shiny)
-library(shinyHeatmaply)
-
-# https://shiny.rstudio.com/articles/dynamic-ui.html
-# This page describes how to dynamically update UI elements
 
 shinyUI(
   navbarPage("pubchem-heatmap",

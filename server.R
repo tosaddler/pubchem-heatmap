@@ -1,5 +1,4 @@
 require(shiny)
-require(shinyHeatmaply)
 require(clusterSim)
 library(pool)
 
