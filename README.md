@@ -6,3 +6,18 @@ This Shiny application is used to view data density of compounds on [PubChem](ht
 
 - Cluster similar compounds with the dendrogram feature of heatmaply
 - Wordclouds by selecting individual compounds and sections
+
+# Installing database drivers
+https://db.rstudio.com/best-practices/drivers/
+
+# Creating PostgreSQL Docker Container for caching
+
+```
+docker run -d \
+    --name pubchem-postgres \
+    -e POSTGRES_PASSWORD=pubchem-heatmap \
+    -e POSTGRES_USER=pubchem \
+    -e POSTGRES_DB=postgres \
+    -p 5432:5432 \
+    postgres
+```

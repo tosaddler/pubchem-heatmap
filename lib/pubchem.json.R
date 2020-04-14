@@ -93,5 +93,3 @@ pubchem.parse <- function(vec_chemid, vec_index = c("Pharmacology and Biochemist
 
     return(master)
 }
-
-pubchem.

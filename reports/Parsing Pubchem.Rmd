@@ -1,122 +1,99 @@
 ---
-title: "R and Splash"
+title: "PubChem JSON API"
 output: html_notebook
 editor_options: 
   chunk_output_type: console
 ---
 
-```{r setup}
+```{r knitr, echo=FALSE}
 knitr::opts_knit$set(root.dir = normalizePath(".."))
 ```
 
-# Creating the function
-
-```{r}
-require(tidyverse)
-require(jsonlite)
-require(stringr)
-require(data.table)
-require(clusterSim)
-
-pubchem.parse <- function(vec_chemid, vec_index = c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification")) {
-    master <- data.frame()
-    vec_chem_names <- vector()
-    vec_json <- c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification", "Safety and Hazards", "Toxicity")
-    vec_csv <- c("PubMed Citations", "Patents", "Biosystems and Pathways", "BioAssay Results")
-
-    for (i in 1:length(vec_chemid)) {
-
-        # Bring in full JSON for compound
-        df <- read_json(paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/", vec_chemid[i],
-                               "/JSON/?response_type=save$response_basename=CID_", vec_chemid[i]))
-        df <- df$Record$Section
-
-        # Renaming list headers
-        category_names <- vector()
-        for (j in 1:length(df)) {
-            category_names <- c(category_names, df[[j]]$TOCHeading)
-        }
-        names(df) <- category_names
-
-        # Pulling compound names for heatmap
-        vec_chem_names <- c(vec_chem_names, df$`Names and Identifiers`$Section[[1]]$Information[[1]]$StringValue)
-
-        # Initialize temporary data frame to pull info from each section
-        df_temp <- data.frame()
-
-        # Loop through each desired section
-        for (j in vec_index) {
-
-            vec_temp <- vector()
-
-            # Subset desired section
-            df_chem <- df[[j]]
-
-            if (is.element(j, vec_json)) {
-                if (j == "Pharmacology and Biochemistry" | j == "Use and Manufacturing" | j == "Identification") {
-                    for (k in 1:length(df_chem$Section)) {
-                        for (l in 1:length(df_chem$Section[[k]]$Information)) {
-                            vec_temp <- c(vec_temp, df_chem$Section[[k]]$Information[[l]]$StringValue)
-                        }
-                    }
-                } else if (j == "Safety and Hazards" | j == "Toxicity") {
-                    for (k in 1:length(df_chem$Section)) {
-                        for (l in 1:length(df_chem$Section[[k]]$Section)) {
-                            for (m in 1:length(df_chem$Section[[k]]$Section[[l]]$Information)) {
-                                vec_temp <- c(vec_temp, df_chem$Section[[k]]$Section[[l]]$Information[[m]]$StringValue)
-                            }
-                        }
-                    }
-                }
-
-                vec_temp <- paste(vec_temp, sep = "", collapse = "")
-                vec_temp <- str_replace_all(vec_temp, "\\<.*?\\>", "")
-                vec_temp <- str_count(vec_temp, "\\S+")
-
-            } else if (is.element(j, vec_csv)) {
-                if (j == "PubMed Citations") {
-                    df_csv <- fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22pmid%22%5D,%22collection%22:%22pubmed%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i, "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22articlepubdate%22%5D%7D%5D"))
-                } else if (j == "Patents") {
-                    df_csv <- fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22patentid%22%5D,%22collection%22:%22patent%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i,"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22patentsubmdate%22,%22patentgrantdate%22%5D%7D%5D"))
-                } else if (j == "Biosystems and Pathways") {
-                    df_csv <- fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%7B%22download%22:%5B%22bsid%22%5D,%22collection%22:%22biosystem%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i,"%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D"))
-                } else if (j == "BioAssay Results") {
-                    df_csv <- fread(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=jsonp&query=%5B%7B%22download%22:%5B%22activity%22%5D,%22collection%22:%22bioactivity%22,%22where%22:%7B%22ands%22:%5B%7B%22cid%22:%22", i, "%22%7D%5D%7D,%22order%22:%5B%22relevancescore,desc%22%5D,%22start%22:1,%22limit%22:1000000%7D,%7B%22histogram%22:%5B%22activity%22,%22acvalue%22,%22sid%22%5D%7D%5D"))
-                }
-                vec_temp <- c(vec_temp, nrow(df_csv))
-            }
-            vec_temp <- as.data.frame(vec_temp)
-            names(vec_temp) <- j
-            if (length(df_temp) < 1) {
-                df_temp <- vec_temp
-            } else {
-                df_temp <- bind_cols(df_temp, vec_temp)
-            }
-        }
-        master <- bind_rows(master, df_temp)
-    }
-
-    # master <- as.data.frame(sapply(master, function(x) {str_count(x, "\\S+")}))
-
-    master <- data.Normalization(master, type = "n8")
-
-    row.names(master) <- vec_chem_names
-
-    return(master)
-}
-
+```{r install.packages, echo=FALSE, eval=FALSE}
+install.packages("RCurl")
+install.packages("rjson")
+install.packages("rvest")
+install.packages("data.table")
+install.packages("tidyverse")
+install.packages("stringr")
+install.packages("devtools")
 ```
 
-# Setting up variables
 ```{r}
-compounds = unlist(str_split("6618\n1983\n120228", "\n"))
-input$categories <- c("Pharmacology and Biochemistry", "Use and Manufacturing", "Identification")
+library(devtools)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+devtools::install_github(repo = "data.tree", username = "gluc")
+```
+
+```{r load.packages, echo=FALSE}
+library(RCurl)
+library(jsonlite)
+library(rvest)
+library(data.tree)
+library(data.table)
+library(stringr)
+library(tidyverse)
+```
+
+```{r source.pubchem.parse}
+source("lib/pubchem_parse.R")
+```
+
+```{r}
+chem_id <- "1983"
+chem_url <- PubChemURL(chem_id)
+chem_json <- PubChemJSON(chem_url)
+chem_tree <- PubChemTree(chem_json)
+```
+
+```{r}
+pubchem_parse_test <- PubChemScrape(chem_tree, NULL, TRUE)
+```
+
+```{r}
+pubmed.citations <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pubmed","where":{"ands":[{"cid":"', chem_id, '"},{"pmidsrcs":"xref"}]},"order":["articlepubdate,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
+pubmed.citations <- pubmed.citations$SDQOutputSet$totalCount
+```
+
+```{r}
+nature.ref <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"springernature","where":{"ands":[{"cid":"', chem_id, '"}]},"order":["scorefloat,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
+nature.ref <- nature.ref$SDQOutputSet$totalCount
+```
+  
+```{r}
+metabolite.ref <- jsonlite::fromJSON(getURL(paste0("https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={%22select%22:[%22articletitle%22,%22articlejourname%22,%22articlepubdate%22,%22pmid%22,%22url%22,%22openaccess%22],%22collection%22:%22springernature%22,%22where%22:{%22ands%22:[{%22cid%22:%22", chem_id,` "%22}]},%22order%22:[%22scorefloat,desc%22],%22start%22:1,%22limit%22:5}")))f
+metabolite.ref <- metabolite.ref$SDQOutputSet$totalCount
 ```
 
 
-# Calling the function
+```{r}
+metabolite.ref <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"hmdb","where":{"ands":[{"cid":"', chem_id,'"}]},"order":["relevancescore,desc"],"start":1,"limit":1,"width":1000000,"listids":0}')))
+metabolite.ref <- metabolite.ref$SDQOutputSet$totalCount
+```
 
 ```{r}
-df <- pubchem.parse(vec_chemid = compounds, vec_index = input$categories)
+sdq_/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"hmdb","where":{"ands":[{"cid":"1983"}]},"order":["relevancescore,desc"],"start":1,"limit":5,"width":1000000,"listids":0}
 ```
+
+```{r}
+'https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"bioactivity","where":{"ands":[{"cid":', chem.id, '}]},"order":["acvalue,asc"],"start":1,"limit":1,"nullatbottom":1,"width":1000000,"listids":0}'
+```
+
+```{r}
+  biosystems.pathways <- jsonlite::fromJSON(getURL(paste0('https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pathway","where":{"ands":[{"cid":"', chem_id, '"},{"core":"1"}]},"order":["source,asc"],"start":1,"limit":1}')))
+```
+
+https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pathway","where":{"ands":[{"cid":"1983"}]},"order":["relevancescore,asc"],"start":1,"limit":100,"nullatbottom":0,"width":1000000,"listids":0}
+
+https://pubchem.ncbi.nlm.nih.gov/sdq/sdqagent.cgi?infmt=json&outfmt=json&query={"select":"*","collection":"pathway","where":{"ands":[{"cid":"1983"},{"core":"1"}]},"order":["source,asc"],"start":1,"limit":1}
+
+```{r}
+
+```
+
+Should add article research timeframe comparison using the research data table From Nature.
+This way you can see if there was a large spike of research for a compound or a class of compounds.
+
 

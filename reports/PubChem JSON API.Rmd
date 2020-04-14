@@ -41,7 +41,6 @@ library(tidyverse)
 source("lib/pubchem_parse.R")
 ```
 
-
 # Pubchem PUG URL's
 
 Most, if not all, of the information the service needs to produce its results is encoded into the URL. The general form of the URL has three parts – input, operation, and output – after the common prefix, followed by operation options as URL arguments (after the ‘?’):
@@ -51,7 +50,6 @@ Most, if not all, of the information the service needs to produce its results is
 ```{r}
 compound.id <- "2244"
 ```
-
 
 ```{r}
 # Import JSON for compound
