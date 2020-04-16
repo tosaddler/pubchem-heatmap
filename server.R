@@ -1,5 +1,5 @@
 require(shiny)
-require(shinyHeatmaply)
+require(heatmaply)
 require(clusterSim)
 library(pool)
 
@@ -77,19 +77,20 @@ shinyServer(function(input, output) {
           heatmaply(finalFrame(),
                     dendrogram = "row",
                     RowV = df.dend,
-                    row_dend_left = FALSE,
-                    # margins = c(200, 200, NA, 0),
-                    colors = Blues) %>%
+                    row_dend_left = FALSE) %>%
             layout(height = "100%")
         } else {
-          heatmaply(finalFrame(),
-                    dendrogram = FALSE,
-                    # margins = c(200, 200, NA, 0),
-                    colors = Blues) %>%
-            layout(height = 0.9 * as.numeric(input$dimension[2]))
+          df <- finalFrame()
+          plot_ly(x = colnames(df),
+                 y = rownames(df),
+                 z = df,
+                 type = "heatmap",
+                 colorscale = "Blues",
+                 height = 0.9 * as.numeric(input$dimension[2])) %>%
+              layout(
+                    xaxis = list(side = input$chem.names.side)
+                    )
         }
-
-      })
   })
 
   output$click <- renderPrint({
@@ -120,4 +121,5 @@ shinyServer(function(input, output) {
     }
   )
 
+})
 })

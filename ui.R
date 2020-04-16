@@ -1,5 +1,5 @@
 library(shiny)
-library(shinyHeatmaply)
+library(heatmaply)
 
 shinyUI(
   navbarPage("pubchem-heatmap",
@@ -143,6 +143,11 @@ shinyUI(
                                    value = 30,
                                    min = 1,
                                    max = 200),
+
+               selectInput(inputId = "chem.names.side",
+                           label = "Compound name side",
+                           choices = list("Left" = "left", "Right" = "right"),
+                           selected = "left"),
 
                numericInput(       inputId  =   "plot_width",
                                    label    =   'Plot Width',
