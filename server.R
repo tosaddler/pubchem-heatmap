@@ -8,6 +8,23 @@ source("lib/clustering.R")
 source("lib/select_sections.R")
 source("lib/event_data.R")
 
+db_config <- config::get("dbconnection")
+
+db_pool <- dbPool(odbc::odbc(),
+                  Driver      = db_config$driver,
+                  Database    = db_config$database,
+                  Server      = db_config$host,
+                  UID         = db_config$uid,
+                  PWD         = db_config$pass,
+                  Port        = db_config$port,
+                  minSize     = 10,
+                  maxSize     = Inf,
+                  idleTimeout = 3600)
+
+onStop(function() {
+  poolClose(db_pool)
+})
+
 shinyServer(function(input, output) {
 
   CompoundsParse <- eventReactive(input$update, {
@@ -34,6 +51,7 @@ shinyServer(function(input, output) {
 
     df <- PubChemParse(chem.ids = compounds,
                        db.bypass = input$bypass,
+                       db_con = db_pool,
                        updateProgress = updateProgress)
     return(df)
   })

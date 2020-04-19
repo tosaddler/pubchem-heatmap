@@ -10,122 +10,86 @@ knitr::opts_knit$set(root.dir = normalizePath(".."))
 
 ```{r libraries}
 library(config)
+library(pool)
+library(dplyr)
+library(DBI)
 ```
 
 ```{r import_scripts}
 source("lib/pubchem_parse.R")
+source("lib/postgresql_initialize.R")
 ```
 
 ```{r}
-cf <- config::get("dbconnection")
-```
+db_config <- config::get("dbconnection")
 
-```{r}
-db <- DBI::dbConnect(odbc::odbc(),
-                      Driver   = "PostgreSQL Driver",
-                      Server   = "127.0.0.1",
-                      Database = "postgres",
-                      UID      = "pubchem",
-                      PWD      = "pubchem-heatmap",
-                      Port     = 5432)
+db_pool <- dbPool(odbc::odbc(),
+  Driver      = db_config$driver,
+  Database    = db_config$database,
+  Server      = db_config$host,
+  UID         = db_config$uid,
+  PWD         = db_config$pass,
+  Port        = db_config$port,
+  minSize     = 10,
+  maxSize     = Inf,
+  idleTimeout = 3600)
 ```
-
-# Create Tables
 
 ```{r create_pubchem_counts}
-if (!dbExistsTable(db, "pubchem_counts")) {
-    dbSendQuery(db, "CREATE TABLE pubchem_counts (
-                      compound_id INT PRIMARY KEY,
-                      name_info TEXT,
-                      cactvs_info TEXT,
-                      pharmacology_and_biochemistry INT,
-                      pharmacology INT,
-                      absoprption_distribution_excretion INT,
-                      metabolism_metabolites INT,
-                      biological_half_life INT,
-                      mechanism_of_action INT,
-                      use_and_manufacturing INT,
-                      methods_of_manufacturing INT,
-                      consumption INT,
-                      identification INT,
-                      analytic_lab_methods INT,
-                      clinical_lab_methods INT,
-                      safety_hazards INT,
-                      hazards_identification INT,
-                      safety_hazards_prop INT,
-                      first_aid_measures INT,
-                      fire_fighting_measures INT,
-                      accidental_release_measures INT,
-                      handling_storage INT,
-                      exposure_control_and_pp INT,
-                      stability_reactivity INT,
-                      transport_info INT,
-                      regulatory_info INT,
-                      toxicity INT,
-                      tox_info INT,
-                      eco_info INT,
-                      literature INT,
-                      pubmed_citations INT,
-                      metabolite_references INT,
-                      nature_references INT,
-                      bio_interactions_pathways INT,
-                      biosystems_pathways INT);")
+if (!pool::dbExistsTable(db_pool, "pubchem_counts")) {
+  InitializePostgresTable(db_pool, "pubchem_counts")
 }
 ```
 
-```{r}
-if (!dbExistsTable(db, "pubchem_text")) {
-  dbSendQuery(db, "CREATE TABLE pubchem_text (
-                    compound_id INT REFERENCES pubchem_counts(compound_id),
-                    pharmacology_text TEXT,
-                    absorption_distribution_excretion_text TEXT,
-                    metabolism_metabolites_text TEXT,
-                    biological_half_life_text TEXT,
-                    mechanism_of_action_text TEXT,
-                    methods_of_manufacturing_text TEXT,
-                    consumption_text TEXT,
-                    analytic_lab_methods_text TEXT,
-                    clinical_lab_methods_text TEXT,
-                    hazards_identification_text TEXT,
-                    safety_hazards_prop_text TEXT,
-                    first_aid_measures_text TEXT,
-                    fire_fighting_measures_text TEXT,
-                    accidental_release_measures_text TEXT,
-                    handling_storage_text TEXT,
-                    exposure_control_and_pp_text TEXT,
-                    stability_reactivity_text TEXT,
-                    transport_info_text TEXT,
-                    regulatory_info_text TEXT,
-                    tox_info_text TEXT,
-                    eco_info_text TEXT);")
+```{r create_pubchem_text}
+if (!pool::dbExistsTable(db_pool, "pubchem_text")) {
+  InitializePostgresTable(db_pool, "pubchem_text")
 }
 ```
 
+```{r list_pubchem_counts_fields}
+dbListFields(db_pool, "pubchem_counts")
+```
 
-```{r list_pubchem_raw_counts_fields}
-table_fields <- dbListFields(db, "pubchem_counts")
+```{r list_pubchem_text_fields}
+dbListFields(db_pool, "pubchem_text")
 ```
 
 # Removing Tables
 ```{r remove_tables}
-dbRemoveTable(db, "pubchem_counts")
-dbRemoveTable(db, "pubchem_text")
+dbRemoveTable(db_pool, "pubchem_counts")
+dbRemoveTable(db_pool, "pubchem_text")
 ```
 
 ```{r}
-db.test <- as.logical(dbGetQuery(db, paste("SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id =", 6618, ');')))r
+chem_1 <- dbGetQuery(db_pool, "SELECT * FROM pubchem_counts WHERE compound_id = 6618;")
+```
+
+```{r create_compound_list}
+compounds <- c("6618", "2244", "120228", "4478")
 ```
 
 ```{r}
-compound_exists <- dbSendQuery(db, "SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id = ?);")
-dbBind(compound_exists, list("6618"))
-cpe <- dbFetch(compound_exists)
+sql_get_compounds <- "SELECT * FROM pubchem_counts WHERE compound_id IN (?chems)"
 
-dbClearResult(compound_exists)
+query <- sqlInterpolate(db_pool, sql_get_compounds, chems = SQL(toString(compounds)))
 ```
 
+```{r}
+chems_all <- dbGetQuery(db_pool, query)
+```
+
+```{r pubchem_parse, warning=FALSE}
+test_df <- PubChemParse(chem.ids = compounds,
+                        db.bypass = FALSE,
+                        db_con = db_pool)
+```
 
 # Testing DB field renaming
 ```{r}
 df <- PubChemParse(c("6618", "2244", "120228"), db.bypass = FALSE)
+```
+
+```{r close_pool}
+poolClose(db_pool)
 ```

@@ -9,12 +9,16 @@ require(RPostgres)
 require(RCurl)
 require(config)
 library(pool)
+library(DBI)
+
 
 source("lib/pubchem_sections.R", local = TRUE)
 source("lib/postgresql_rename.R", local = TRUE)
 source("lib/postgresql_initialize.R", local = TRUE)
 
 options(stringsAsFactors = FALSE)
+
+`%notin%` <- Negate(`%in%`)
 
 CollapseTextVector <- function(vec) {
   vec <- paste(vec, sep = " ", collapse = " ")
@@ -59,7 +63,7 @@ JoinTempDF <- function(main.df, temp.df) {
 PubChemURL <- function(chem_id) {
   chem_url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
                          chem_id,
-                         "/JSON/?response_type=save")
+                         "/JSON")
 }
 
 PubChemJSON <- function(chem_url) {
@@ -70,7 +74,7 @@ PubChemTree <- function(chem_json) {
   chem_tree <- FromListSimple(chem_json)
 }
 
-PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
+PubChemScrape <- function(compound.tree) {
   pubchem.sections <- PubChemSections()
 
   chem.id <- compound.tree$Record$RecordNumber
@@ -81,7 +85,7 @@ PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
   compound.tree <- compound.tree$Record$Section
 
   # Initialize temporary data frame to pull info from each section
-  compound.temp <- data.frame(compound.id = as.numeric(chem.id),
+  compound.temp <- data.frame(compound.id = as.character(chem.id),
                               name.info   = compound.name)
 
   for (j in 1:length(pubchem.sections)) {
@@ -153,91 +157,101 @@ PubChemScrape <- function(compound.tree, db, db.bypass = FALSE) {
 
   compound.text <- dplyr::select(compound.temp, `compound.id`, contains(".text"))
 
-  compound.temp <- dplyr::select(compound.temp, -contains(".text"))
+  compound.count <- dplyr::select(compound.temp, -contains(".text"))
 
-  if (!db.bypass) {
-    compound.db <- DFCountsToDB(compound.temp)
-    dbWriteTable(conn = db,
-                 name = "pubchem_counts",
-                 value = compound.db,
-                 row.names = FALSE,
-                 append = TRUE
-    )
-  }
-
-  if (!db.bypass) {
-    compound.text <- DFRawToDB(compound.text)
-    dbWriteTable(conn = db,
-                 name = "pubchem_text",
-                 value = compound.text,
-                 row.names = FALSE,
-                 append = TRUE
-    )
-  }
-
-  return(compound.temp)
+  return(list("compound_counts" = compound.count,
+              "compound_text" = compound.text))
 }
 
-PubChemParse <- function(chem.ids, db.bypass = FALSE, updateProgress = NULL) {
+PubChemParse <- function(chem.ids,
+                         db.bypass = FALSE,
+                         db_con = NULL,
+                         updateProgress = NULL) {
+
+  master_df <- data_frame()
+
   if (!db.bypass) {
-    cf <- config::get("dbconnection")
+    if(!dbExistsTable(db_con, "pubchem_counts")) {
+      InitializePostgresTable(db_con, "pubchem_counts")
+    }
+    if(!dbExistsTable(db_con, "pubchem_text")) {
+      InitializePostgresTable(db_con, "pubchem_text")
+    }
     tryCatch({
-      db <- DBI::dbConnect(odbc::odbc(),
-                           Driver   = cf$driver,
-                           Server   = cf$host,
-                           Database = cf$database,
-                           UID      = cf$uid,
-                           PWD      = cf$pwd,
-                           Port     = cf$port)
-      compound_exists <- dbSendQuery(db, "SELECT EXISTS(SELECT 1 FROM pubchem_counts WHERE compound_id = ?);")
-      fetch_compound <- dbSendQuery(db, "SELECT * FROM pubchem_counts WHERE compound_id = ?;")
-    if(!dbExistsTable(db, "pubchem_counts")) {
-      InitializePostgresTable(db, "pubchem_counts")
-    }},
+      sql_get_compounds <- "SELECT * FROM pubchem_counts WHERE compound_id IN (?chems)"
+
+      query <- sqlInterpolate(db_con, sql_get_compounds, chems = SQL(toString(chem.ids)))
+
+      db_compounds <- dbGetQuery(db_con, query)
+
+      db_compounds <- DBToDFCounts(db_compounds)
+
+      db_compounds$compound.id <- as.character(db_compounds$compound.id)
+
+      master_df <- db_compounds
+
+      chem.ids <- chem.ids[chem.ids %notin% as.character(db_compounds$compound.id)]
+    },
     error = function(err) {
-      db <<- NULL
+      db_con <<- NULL
       db.bypass <<- TRUE
       print(paste("db.bypass is", as.character(db.bypass)))
     })
   } else {
-    db <- NULL
+    db_con <- NULL
   }
   print(paste("db.bypass is", as.character(db.bypass)))
-  master <- data.frame()
 
-  for (i in 1:length(chem.ids)) {
-    if (is.function(updateProgress)) {
-      updateProgress(value = (i / length(chem.ids)),
-                     detail = paste("Compound", i, "of", length(chem.ids)))
-    }
-
-    if (!db.bypass) {
-      dbBind(compound_exists, list(chem.ids[[1]]))
-      cpe <- dbFetch(compound_exists)
-      dbClearResult(compound_exists)
-      if (as.logical(as.numeric(cpe[[1]]))) {
-        dbBind(fetch_compound, list(chem.ids[[1]]))
-        compound.temp <- dbFetch(fetch_compound)
-        dbClearResult(fetch_compound)
-        compound.temp <- DBToDFCounts(compound.temp)
-      } else {
-        compound_url <- PubChemURL(chem.ids[[i]])
-        compound_json <- PubChemJSON(compound_url)
-        compound_tree <- PubChemTree(compound_json)
-        compound.temp <- PubChemScrape(compound_tree, db, db.bypass)
+  new_compound_counts <- data_frame()
+  new_compound_text <- data.frame()
+  if (length(chem.ids) > 0) {
+    for (i in 1:length(chem.ids)) {
+      if (is.function(updateProgress)) {
+        updateProgress(value = (i / length(chem.ids)),
+                       detail = paste("Compound", i, "of", length(chem.ids)))
       }
-
-    } else {
       compound_url <- PubChemURL(chem.ids[[i]])
       compound_json <- PubChemJSON(compound_url)
       compound_tree <- PubChemTree(compound_json)
-      compound.temp <- PubChemScrape(compound_tree, db, db.bypass)
+      compound.temp <- PubChemScrape(compound_tree)
+
+      if (!db.bypass) {
+        tryCatch({dbWriteTable(conn = db_con,
+                     name = "pubchem_counts",
+                     value = DFCountsToDB(compound.temp$compound_counts),
+                     append = TRUE)})
+        tryCatch({dbWriteTable(conn = db_con,
+                     name = "pubchem_text",
+                     value = DFRawToDB(compound.temp$compound_text),
+                     append = TRUE)})
+      }
+
+
+
+      if (nrow(new_compound_counts) < 1) {
+        new_compound_counts <- compound.temp$compound_counts
+      } else {
+        new_compound_counts <- bind_rows(new_compound_counts,
+                                       compound.temp$compound_counts)
+      }
+
+      if (nrow(new_compound_text) < 1) {
+        new_compound_text <- compound.temp$compound_text
+      } else {
+        new_compound_text <- bind_rows(new_compound_text,
+                                       compound.temp$compound_text)
+      }
+
     }
-    master <- bind_rows(master, compound.temp)
   }
 
-  if (!db.bypass) {
-    dbDisconnect(db)
+
+
+  master_df <- if(nrow(master_df) < 1) {
+    master_df <- new_compound_counts
+  } else {
+    master_df <- bind_rows(master_df, new_compound_counts)
   }
-  return(master)
+
+  return(master_df)
 }

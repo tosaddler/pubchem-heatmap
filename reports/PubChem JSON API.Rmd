@@ -55,12 +55,10 @@ compound.id <- "2244"
 # Import JSON for compound
 compound.url <- paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/",
                        compound.id,
-                       "/JSON/?response_type=save$response_basename=CID_",
-                       compound.id)
+                       "/JSON")
 
 compound.tree <- compound.url %>%
-                  read_json() %>%
-                  FromListSimple()
+                  read_json()
 ```
 
 ```{r compound.tree.prune}
