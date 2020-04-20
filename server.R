@@ -99,14 +99,14 @@ shinyServer(function(input, output) {
             layout(height = "100%")
         } else {
           df <- finalFrame()
-          plot_ly(x = colnames(df),
-                 y = rownames(df),
-                 z = df,
-                 type = "heatmap",
-                 colorscale = "Blues",
-                 height = 0.9 * as.numeric(input$dimension[2])) %>%
+          heatmaply(df,
+                    dendrogram = "none",
+                    colors = Blues,
+                    height = 0.9 * as.numeric(input$dimension[2]))  %>%
               layout(
-                    xaxis = list(side = input$chem.names.side)
+                    yaxis = list(side = input$chem.names.side),
+                    orientation = "h",
+                    legend = list(x = -1.02)
                     )
         }
   })
