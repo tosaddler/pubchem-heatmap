@@ -93,3 +93,19 @@ df <- PubChemParse(c("6618", "2244", "120228"), db.bypass = FALSE)
 ```{r close_pool}
 poolClose(db_pool)
 ```
+
+```{r}
+docker run --name pubchem-postgres -p 5432:5432 -e POSTGRES_USER=pubchem -e POSTGRES_PASSWORD=pubchem-heatmap -e POSTGRES_DB=postgres -d postgres
+```
+
+```{bash}
+docker run \
+    --name pubchem-postgres \
+    -d \
+    -p 5432:5432 \
+    -e POSTGRES_USER=pubchem \
+    -e POSTGRES_PASSWORD=pubchem-heatmap \
+    -e POSTGRES_DB=postgres \
+    postgres:9.6.17
+```
+
