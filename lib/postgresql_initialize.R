@@ -37,10 +37,10 @@ InitializePostgresTable <- function(db, table_name) {
                   nature_references integer,
                   bio_interactions_pathways integer,
                   biosystems_pathways integer
-                );
+                );")
+    dbGetQuery(db, "ALTER TABLE pubchem_counts ADD CONSTRAINT compound_id
+                    PRIMARY KEY (compound_id);")
 
-                ALTER TABLE pubchem_counts ADD CONSTRAINT compound_id
-                PRIMARY KEY (compound_id);")
   } else if (table_name == "pubchem_text") {
       dbGetQuery(db, "CREATE TABLE pubchem_text
                   (

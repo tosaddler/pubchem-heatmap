@@ -104,8 +104,8 @@ docker run \
     -d \
     -p 5432:5432 \
     -e POSTGRES_USER=pubchem \
-    -e POSTGRES_PASSWORD=pubchem-heatmap \
     -e POSTGRES_DB=postgres \
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
     postgres:9.6.17
 ```
 
